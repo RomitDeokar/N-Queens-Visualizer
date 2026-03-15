@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 
 /**
- * Board.jsx — Renders the NxN chessboard with queens.
+ * Board.jsx - NxN chessboard with queens.
  * 
- * FIX: Queens now render correctly on ALL rows including the bottom row.
- * The board uses explicit pixel sizing (not Tailwind classes that can clip),
- * and overflow is set to visible on all containers.
+ * FIXED: Queens now render correctly on ALL rows including the last row.
+ * Uses CSS Grid with explicit sizing and NO overflow:hidden anywhere.
+ * Queen emoji is rendered with proper containment inside each cell.
  */
-export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false, checkingCell = null }) {
-  // Compute attack map
+export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false, checkingCell = null, compact = false }) {
+  // Compute attack map for constraint visualization
   const { attackMap, maxAttacks } = useMemo(() => {
     const map = Array.from({ length: n }, () => Array(n).fill(0));
     let max = 0;
@@ -31,6 +31,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     return { attackMap: map, maxAttacks: max };
   }, [n, queens]);
 
+  // Build a set of queen positions for quick lookup
   const queenSet = useMemo(() => {
     const s = new Set();
     queens.forEach((col, row) => {
@@ -41,44 +42,60 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     return s;
   }, [queens, n]);
 
-  // Use pixel-based sizing to avoid any Tailwind overflow issues
+  // Cell sizing based on N
   const getCellSize = () => {
-    if (n <= 4) return 64;
-    if (n <= 6) return 56;
-    if (n <= 8) return 48;
-    if (n <= 10) return 40;
-    if (n <= 12) return 34;
-    return 28;
+    if (compact) {
+      if (n <= 4) return 48;
+      if (n <= 6) return 40;
+      if (n <= 8) return 36;
+      if (n <= 10) return 30;
+      if (n <= 12) return 26;
+      return 22;
+    }
+    if (n <= 4) return 72;
+    if (n <= 6) return 60;
+    if (n <= 8) return 52;
+    if (n <= 10) return 44;
+    if (n <= 12) return 38;
+    return 30;
   };
 
   const getQueenFontSize = () => {
-    if (n <= 4) return 32;
-    if (n <= 6) return 28;
-    if (n <= 8) return 24;
-    if (n <= 10) return 20;
-    if (n <= 12) return 16;
-    return 14;
+    if (compact) {
+      if (n <= 4) return 24;
+      if (n <= 6) return 20;
+      if (n <= 8) return 18;
+      if (n <= 10) return 15;
+      if (n <= 12) return 12;
+      return 10;
+    }
+    if (n <= 4) return 36;
+    if (n <= 6) return 30;
+    if (n <= 8) return 26;
+    if (n <= 10) return 22;
+    if (n <= 12) return 18;
+    return 15;
   };
 
   const cellPx = getCellSize();
   const queenFontPx = getQueenFontSize();
-  const gap = 1;
+  const gap = 2;
 
-  const getCellBg = (row, col) => {
+  const getCellClasses = (row, col) => {
     const isQueen = queenSet.has(`${row}-${col}`);
     const isDark = (row + col) % 2 === 1;
     const attacks = attackMap[row]?.[col] ?? 0;
     const isChecking = checkingCell && checkingCell.row === row && checkingCell.col === col;
 
-    if (isChecking) return 'cell-checking';
-    if (isQueen) return 'queen-cell';
+    if (isChecking) return 'board-cell-checking';
+    if (isQueen) return 'board-cell-queen';
 
     if (showConstraints && queens.length > 0) {
-      if (attacks > 0) return isDark ? 'cell-attacked-dark' : 'cell-attacked-light';
-      return isDark ? 'cell-safe-dark' : 'cell-safe-light';
+      if (attacks > 0) return isDark ? 'board-cell-attacked-dark' : 'board-cell-attacked-light';
+      return isDark ? 'board-cell-safe-dark' : 'board-cell-safe-light';
     }
 
-    return isDark ? 'cell-dark' : 'cell-light';
+    return isDark ? 'board-cell-dark' : 'board-cell-light';
   };
 
   const getCellStyle = (row, col) => {
@@ -95,54 +112,71 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     };
   };
 
-  const labelSize = n <= 8 ? 12 : n <= 12 ? 10 : 9;
+  const labelSize = compact ? 9 : (n <= 8 ? 12 : n <= 12 ? 10 : 9);
+  const boardTotalWidth = n * cellPx + (n - 1) * gap;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', overflow: 'visible' }}>
-      {/* Column labels */}
-      <div style={{ display: 'flex', marginLeft: `${cellPx * 0.5 + 8}px`, gap: `${gap}px`, overflow: 'visible' }}>
-        {Array.from({ length: n }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              width: cellPx, height: 20,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: labelSize, fontFamily: 'monospace', color: '#6b7280', fontWeight: 500,
-            }}
-          >
-            {i}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', overflow: 'visible' }}>
-        {/* Row labels */}
-        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 6, gap: `${gap}px`, overflow: 'visible' }}>
+    <div className="board-wrapper">
+      {/* Column labels (a-h or 0-based) */}
+      {!compact && (
+        <div className="board-col-labels" style={{ marginLeft: 28, width: boardTotalWidth }}>
           {Array.from({ length: n }, (_, i) => (
             <div
               key={i}
               style={{
-                width: 20, height: cellPx,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: labelSize, fontFamily: 'monospace', color: '#6b7280', fontWeight: 500,
+                width: cellPx,
+                fontSize: labelSize,
+                textAlign: 'center',
+                color: 'rgba(148, 163, 184, 0.7)',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                lineHeight: '20px',
               }}
             >
-              {i}
+              {String.fromCharCode(97 + i)}
             </div>
           ))}
         </div>
+      )}
 
-        {/* Board grid - uses explicit pixel dimensions, NO overflow hidden */}
+      <div className="board-body">
+        {/* Row labels */}
+        {!compact && (
+          <div className="board-row-labels">
+            {Array.from({ length: n }, (_, i) => (
+              <div
+                key={i}
+                style={{
+                  height: cellPx,
+                  fontSize: labelSize,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 24,
+                  color: 'rgba(148, 163, 184, 0.7)',
+                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                }}
+              >
+                {n - i}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* The actual board grid */}
         <div
-          className="board-grid rounded-xl border border-surface-600/30"
+          className="board-grid-container"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${n}, ${cellPx}px)`,
             gridTemplateRows: `repeat(${n}, ${cellPx}px)`,
             gap: `${gap}px`,
-            background: 'rgba(30, 41, 59, 0.5)',
-            overflow: 'visible',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            borderRadius: compact ? '8px' : '12px',
+            padding: '3px',
+            background: 'rgba(15, 23, 42, 0.8)',
+            border: '1px solid rgba(71, 85, 105, 0.3)',
+            boxShadow: '0 20px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.03) inset',
           }}
         >
           {Array.from({ length: n }, (_, row) =>
@@ -154,47 +188,50 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
               const isLastCol = col === n - 1;
 
               let borderRadius = '';
-              if (isFirstRow && isFirstCol) borderRadius = '12px 0 0 0';
-              else if (isFirstRow && isLastCol) borderRadius = '0 12px 0 0';
-              else if (isLastRow && isFirstCol) borderRadius = '0 0 0 12px';
-              else if (isLastRow && isLastCol) borderRadius = '0 0 12px 0';
+              const r = compact ? 6 : 8;
+              if (isFirstRow && isFirstCol) borderRadius = `${r}px 0 0 0`;
+              else if (isFirstRow && isLastCol) borderRadius = `0 ${r}px 0 0`;
+              else if (isLastRow && isFirstCol) borderRadius = `0 0 0 ${r}px`;
+              else if (isLastRow && isLastCol) borderRadius = `0 0 ${r}px 0`;
 
               return (
                 <div
                   key={`${row}-${col}`}
-                  className={`${getCellBg(row, col)} transition-all duration-200`}
+                  className={`board-cell ${getCellClasses(row, col)}`}
                   style={{
                     width: cellPx,
                     height: cellPx,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'visible',
                     borderRadius,
                     ...getCellStyle(row, col),
                   }}
                 >
                   {isQueen && (
-                    <span
-                      className="queen-piece"
-                      style={{
-                        fontSize: queenFontPx,
-                        lineHeight: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                      }}
-                      role="img"
-                      aria-label="queen"
+                    <div
+                      className="queen-icon"
+                      style={{ fontSize: queenFontPx }}
                     >
-                      ♛
-                    </span>
+                      <svg viewBox="0 0 45 45" width={queenFontPx} height={queenFontPx}>
+                        <g fill="none" fillRule="evenodd">
+                          <g fill="#fff" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
+                            <path d="M24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
+                            <path d="M41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
+                            <path d="M16 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
+                            <path d="M33 9a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
+                            <path d="M9 26c8.5-1.5 21-1.5 27 0l2.5-12.5L31 25l-3.5-7-5 6.5-5-6.5-3.5 7-7.5-1 2.5 12.5z" strokeLinecap="butt"/>
+                            <path d="M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1 2.5-1 2.5-1.5 1.5 0 2.5 0 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z" strokeLinecap="butt"/>
+                            <path d="M11 38.5a35 35 1 0 0 23 0" fill="none" strokeLinecap="butt"/>
+                            <path d="M11 29a35 35 1 0 1 23 0" fill="none"/>
+                            <path d="M12.5 31.5h20" fill="none" strokeLinejoin="miter"/>
+                            <path d="M11.5 34.5a35 35 1 0 0 22 0" fill="none"/>
+                            <path d="M10.5 37.5a35 35 1 0 0 24 0" fill="none"/>
+                          </g>
+                        </g>
+                      </svg>
+                    </div>
                   )}
                   {!isQueen && showHeatmap && (attackMap[row]?.[col] ?? 0) > 0 && (
-                    <span style={{ fontSize: 9, fontFamily: 'monospace', color: 'rgba(252, 165, 165, 0.5)', fontWeight: 700 }}>
+                    <span className="heatmap-number" style={{ fontSize: Math.max(9, cellPx * 0.22) }}>
                       {attackMap[row][col]}
                     </span>
                   )}
@@ -206,18 +243,18 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
       </div>
 
       {/* Legend */}
-      {showConstraints && queens.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 8, fontSize: 12, color: '#9aa5b4' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'linear-gradient(135deg, #fbbf24, #d97706)' }} />
+      {showConstraints && queens.length > 0 && !compact && (
+        <div className="board-legend">
+          <div className="board-legend-item">
+            <div className="board-legend-swatch" style={{ background: 'linear-gradient(135deg, #fbbf24, #d97706)' }} />
             <span>Queen</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)' }} />
+          <div className="board-legend-item">
+            <div className="board-legend-swatch" style={{ background: 'rgba(16, 185, 129, 0.4)', border: '1px solid rgba(16, 185, 129, 0.3)' }} />
             <span>Safe</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(239, 68, 68, 0.3)', border: '1px solid rgba(239, 68, 68, 0.2)' }} />
+          <div className="board-legend-item">
+            <div className="board-legend-swatch" style={{ background: 'rgba(239, 68, 68, 0.4)', border: '1px solid rgba(239, 68, 68, 0.3)' }} />
             <span>Attacked</span>
           </div>
         </div>
