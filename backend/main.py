@@ -68,9 +68,14 @@ def run_solver(solver_module, name, n):
 
 
 def count_all_solutions(n: int) -> dict:
-    """Count all solutions using optimized DFS backtracking. Returns count and trace steps."""
+    """
+    Count all solutions using optimized DFS backtracking.
+    Returns count, all solutions (limited), total steps, and detailed trace.
+    The trace includes 'check', 'place', 'remove', and 'solution' step types
+    for full backtracking visualization with logs.
+    """
     if n <= 0:
-        return {"total_solutions": 0, "trace": []}
+        return {"total_solutions": 0, "trace": [], "all_solutions": [], "total_steps": 0}
 
     solutions = []
     count = [0]
@@ -80,17 +85,19 @@ def count_all_solutions(n: int) -> dict:
     diag1 = set()
     diag2 = set()
     step_counter = [0]
+    record_trace = n <= 8  # Only record full trace for small boards
 
     def backtrack(row):
         if row == n:
             count[0] += 1
             solutions.append(list(state))
-            trace_steps.append({
-                "type": "solution",
-                "step": step_counter[0],
-                "state": list(state),
-                "solution_number": count[0],
-            })
+            if record_trace:
+                trace_steps.append({
+                    "type": "solution",
+                    "step": step_counter[0],
+                    "state": list(state),
+                    "solution_number": count[0],
+                })
             return
 
         for col in range(n):
@@ -98,14 +105,23 @@ def count_all_solutions(n: int) -> dict:
             d1 = row - col
             d2 = row + col
 
+            # Record checking this square
+            if record_trace:
+                trace_steps.append({
+                    "type": "check",
+                    "step": step_counter[0],
+                    "row": row,
+                    "col": col,
+                    "state": list(state),
+                })
+
             if col not in columns and d1 not in diag1 and d2 not in diag2:
                 state.append(col)
                 columns.add(col)
                 diag1.add(d1)
                 diag2.add(d2)
 
-                # Only record trace for small N to avoid memory issues
-                if n <= 8:
+                if record_trace:
                     trace_steps.append({
                         "type": "place",
                         "step": step_counter[0],
@@ -121,7 +137,7 @@ def count_all_solutions(n: int) -> dict:
                 diag1.remove(d1)
                 diag2.remove(d2)
 
-                if n <= 8:
+                if record_trace:
                     trace_steps.append({
                         "type": "remove",
                         "step": step_counter[0],
@@ -140,7 +156,7 @@ def count_all_solutions(n: int) -> dict:
         "all_solutions": solutions if n <= 10 else solutions[:100],
         "total_steps": step_counter[0],
         "time_ms": round(elapsed, 2),
-        "trace": trace_steps if n <= 8 else [],
+        "trace": trace_steps if record_trace else [],
     }
 
 

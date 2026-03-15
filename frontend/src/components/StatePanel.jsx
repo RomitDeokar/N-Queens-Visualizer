@@ -7,30 +7,49 @@ export default function StatePanel({ queens = [], n, activeAlgo, results, soluti
   const stateStr = queens.length > 0 ? `[${queens.join(', ')}]` : '[]';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* State Array Card */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-sm shadow shadow-brand-500/30">
-            🧩
-          </div>
+      <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: 'linear-gradient(135deg, #4c6ef5, #4f46e5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, boxShadow: '0 3px 8px rgba(76, 110, 245, 0.3)',
+          }}>🧩</div>
           <div>
-            <h3 className="text-sm font-bold text-white">State Representation</h3>
-            <p className="text-[10px] text-surface-500">index = row, value = column</p>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>State Representation</h3>
+            <p style={{ fontSize: '0.625rem', color: '#64748b' }}>index = row, value = column</p>
           </div>
         </div>
 
-        <div className="bg-surface-800/60 rounded-xl p-4 border border-surface-700/20">
-          <div className="text-[10px] uppercase tracking-widest text-surface-500 font-bold mb-2">Current State</div>
-          <div className="font-mono text-sm text-brand-300 break-all leading-relaxed">
+        <div style={{
+          background: 'rgba(31, 41, 55, 0.5)',
+          borderRadius: 12,
+          padding: '1rem',
+          border: '1px solid rgba(55, 65, 81, 0.2)',
+        }}>
+          <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b', fontWeight: 700, marginBottom: '0.5rem' }}>
+            Current State
+          </div>
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.8rem',
+            color: '#91a7ff',
+            wordBreak: 'break-all',
+            lineHeight: 1.6,
+          }}>
             State = {stateStr}
           </div>
           {queens.length > 0 && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${queens.length === n ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className="text-[11px] text-surface-400">
-                {queens.length} queen{queens.length !== 1 ? 's' : ''} placed on {n}x{n} board
-                {queens.length === n && <span className="text-emerald-400 ml-1 font-semibold">— Complete!</span>}
+            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: queens.length === n ? '#34d399' : '#fbbf24',
+              }} />
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                {queens.length} queen{queens.length !== 1 ? 's' : ''} placed on {n}×{n} board
+                {queens.length === n && <span style={{ color: '#34d399', marginLeft: 4, fontWeight: 600 }}>— Complete!</span>}
               </span>
             </div>
           )}
@@ -38,21 +57,24 @@ export default function StatePanel({ queens = [], n, activeAlgo, results, soluti
       </div>
 
       {/* Total Solutions Info */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm shadow shadow-violet-500/30">
-            🔢
-          </div>
+      <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, boxShadow: '0 3px 8px rgba(139, 92, 246, 0.3)',
+          }}>🔢</div>
           <div>
-            <h3 className="text-sm font-bold text-white">Solution Count</h3>
-            <p className="text-[10px] text-surface-500">Total valid placements for N={n}</p>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>Solution Count</h3>
+            <p style={{ fontSize: '0.625rem', color: '#64748b' }}>Total valid placements for N={n}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
           <div className="stat-pill">
             <span className="stat-label">Total Solutions</span>
-            <span className="stat-value text-amber-300 text-base">
+            <span className="stat-value" style={{ fontSize: '1rem', color: '#fcd34d' }}>
               {solutionsData?.total_solutions?.toLocaleString() ?? KNOWN_SOLUTIONS[n]?.toLocaleString() ?? '—'}
             </span>
           </div>
@@ -64,27 +86,44 @@ export default function StatePanel({ queens = [], n, activeAlgo, results, soluti
           </div>
         </div>
 
+        {solutionsData?.time_ms != null && solutionsData.time_ms > 0 && (
+          <div className="stat-pill" style={{ marginTop: '0.625rem' }}>
+            <span className="stat-label">Enumeration Time</span>
+            <span className="stat-value">{solutionsData.time_ms.toFixed(2)} ms</span>
+          </div>
+        )}
+
         {KNOWN_SOLUTIONS[n] === 0 && (
-          <div className="mt-2 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-            <span className="text-xs text-red-400 font-medium">No solution exists for N={n}</span>
+          <div style={{
+            marginTop: '0.75rem',
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            background: 'rgba(220, 38, 38, 0.08)',
+            border: '1px solid rgba(220, 38, 38, 0.2)',
+            borderRadius: 10,
+            padding: '0.5rem 0.75rem',
+          }}>
+            <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 500 }}>No solution exists for N={n}</span>
           </div>
         )}
       </div>
 
       {/* Search Snapshot */}
       {r && (
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-sm shadow shadow-amber-500/30">
-              📡
-            </div>
+        <div className="glass-card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10,
+              background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, boxShadow: '0 3px 8px rgba(245, 158, 11, 0.3)',
+            }}>📡</div>
             <div>
-              <h3 className="text-sm font-bold text-white">Search Snapshot</h3>
-              <p className="text-[10px] text-surface-500">{activeAlgo?.toUpperCase().replace('_', ' ')} algorithm</p>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>Search Snapshot</h3>
+              <p style={{ fontSize: '0.625rem', color: '#64748b' }}>{activeAlgo?.toUpperCase().replace('_', ' ')} algorithm</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 mb-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '0.75rem' }}>
             <div className="stat-pill">
               <span className="stat-label">Depth</span>
               <span className="stat-value">{queens.length}</span>
@@ -104,45 +143,66 @@ export default function StatePanel({ queens = [], n, activeAlgo, results, soluti
           </div>
 
           {r.solved && queens.length === n && (
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs text-emerald-400 font-medium">Solution found — all {n} queens placed safely</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: 10,
+              padding: '0.5rem 0.75rem',
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 500 }}>Solution found - all {n} queens placed safely</span>
             </div>
           )}
 
           {r.error && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              <div className="w-2 h-2 rounded-full bg-red-400" />
-              <span className="text-xs text-red-400 font-medium">{r.error}</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              background: 'rgba(220, 38, 38, 0.08)',
+              border: '1px solid rgba(220, 38, 38, 0.2)',
+              borderRadius: 10,
+              padding: '0.5rem 0.75rem',
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171' }} />
+              <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 500 }}>{r.error}</span>
             </div>
           )}
         </div>
       )}
 
       {/* Problem Formulation */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center text-sm shadow shadow-teal-500/30">
-            📝
-          </div>
+      <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: 'linear-gradient(135deg, #14b8a6, #0891b2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, boxShadow: '0 3px 8px rgba(20, 184, 166, 0.3)',
+          }}>📝</div>
           <div>
-            <h3 className="text-sm font-bold text-white">Problem Formulation</h3>
-            <p className="text-[10px] text-surface-500">Formal CSP definition</p>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>Problem Formulation</h3>
+            <p style={{ fontSize: '0.625rem', color: '#64748b' }}>Formal CSP definition</p>
           </div>
         </div>
 
-        <div className="space-y-3 text-xs">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', fontSize: '0.75rem' }}>
           {[
             { label: 'Initial State', value: '[] (empty board)', icon: '○' },
             { label: 'Operators', value: `Place queen in next row at column c in [0, ${n - 1}]`, icon: '▸' },
             { label: 'Goal Test', value: `${n} queens placed, no conflicts`, icon: '◆' },
             { label: 'Path Cost', value: 'Number of queen placements (depth)', icon: '△' },
           ].map(item => (
-            <div key={item.label} className="flex items-start gap-2.5 bg-surface-800/40 rounded-lg p-2.5 border border-surface-700/15">
-              <span className="text-brand-400 mt-0.5 font-mono text-[10px]">{item.icon}</span>
+            <div key={item.label} style={{
+              display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
+              background: 'rgba(31, 41, 55, 0.3)',
+              borderRadius: 10,
+              padding: '0.625rem',
+              border: '1px solid rgba(55, 65, 81, 0.15)',
+            }}>
+              <span style={{ color: '#91a7ff', marginTop: 2, fontFamily: 'monospace', fontSize: '0.625rem' }}>{item.icon}</span>
               <div>
-                <span className="text-surface-400 font-semibold">{item.label}</span>
-                <div className="text-surface-200 mt-0.5 font-mono">{item.value}</div>
+                <span style={{ color: '#94a3b8', fontWeight: 600 }}>{item.label}</span>
+                <div style={{ color: '#e2e8f0', marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>{item.value}</div>
               </div>
             </div>
           ))}
