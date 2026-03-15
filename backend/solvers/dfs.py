@@ -1,20 +1,17 @@
 """
 DFS Solver for N-Queens
 Depth-First Search / Backtracking — recursive.
-Also framed as a CSP:
-  Variables: one per row (which column)
-  Domain: columns 0 to N-1
-  Constraints: no shared column, no shared diagonal
+With time limit for safety.
 """
 
 import time
 import sys
 
+DFS_TIME_LIMIT_SEC = 10
+
 
 def solve(n: int) -> dict:
-    """
-    Run DFS backtracking to solve the N-Queens problem.
-    """
+    """Run DFS backtracking to solve the N-Queens problem."""
     start = time.time()
     result = {
         "algorithm": "dfs",
@@ -28,11 +25,19 @@ def solve(n: int) -> dict:
     peak_memory = 0
     state = []
     columns = set()
-    diag1 = set()  # row - col
-    diag2 = set()  # row + col
+    diag1 = set()
+    diag2 = set()
+    timed_out = [False]
 
     def backtrack(row):
         nonlocal peak_memory
+        
+        # Check time limit periodically
+        if result["nodes"] % 10000 == 0:
+            if time.time() - start > DFS_TIME_LIMIT_SEC:
+                timed_out[0] = True
+                return False
+        
         result["nodes"] += 1
 
         mem = sys.getsizeof(state) + sys.getsizeof(columns) + sys.getsizeof(diag1) + sys.getsizeof(diag2)
@@ -46,19 +51,24 @@ def solve(n: int) -> dict:
 
         for col in range(n):
             result["steps"] += 1
-            if col not in columns and (row - col) not in diag1 and (row + col) not in diag2:
+            d1 = row - col
+            d2 = row + col
+            if col not in columns and d1 not in diag1 and d2 not in diag2:
                 state.append(col)
                 columns.add(col)
-                diag1.add(row - col)
-                diag2.add(row + col)
+                diag1.add(d1)
+                diag2.add(d2)
 
                 if backtrack(row + 1):
                     return True
 
+                if timed_out[0]:
+                    return False
+
                 state.pop()
                 columns.remove(col)
-                diag1.remove(row - col)
-                diag2.remove(row + col)
+                diag1.remove(d1)
+                diag2.remove(d2)
 
         return False
 
@@ -66,6 +76,8 @@ def solve(n: int) -> dict:
     elapsed = (time.time() - start) * 1000
     result["time_ms"] = round(elapsed, 2)
     result["memory_kb"] = round(peak_memory / 1024, 2)
-    if not result["solved"]:
+    if timed_out[0]:
+        result["error"] = f"DFS halted — time limit ({DFS_TIME_LIMIT_SEC}s) reached"
+    elif not result["solved"]:
         result["error"] = "DFS exhausted all states — no solution found"
     return result

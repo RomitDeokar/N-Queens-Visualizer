@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 
 /**
- * Board.jsx — Renders the N*N chessboard with queens and constraint overlay.
- * Fixed: queen rendering on all rows including the bottom row.
- * The grid no longer uses overflow:hidden so queens on the last row render correctly.
+ * Board.jsx — Renders the NxN chessboard with queens.
+ * 
+ * FIX: Queens now render correctly on ALL rows including the bottom row.
+ * The board uses explicit pixel sizing (not Tailwind classes that can clip),
+ * and overflow is set to visible on all containers.
  */
-export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false }) {
-  // Compute attack map for each cell
+export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false, checkingCell = null }) {
+  // Compute attack map
   const { attackMap, maxAttacks } = useMemo(() => {
     const map = Array.from({ length: n }, () => Array(n).fill(0));
     let max = 0;
@@ -32,46 +34,48 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
   const queenSet = useMemo(() => {
     const s = new Set();
     queens.forEach((col, row) => {
-      if (col !== undefined && col !== null && col >= 0 && col < n) s.add(`${row}-${col}`);
+      if (col !== undefined && col !== null && col >= 0 && col < n) {
+        s.add(`${row}-${col}`);
+      }
     });
     return s;
   }, [queens, n]);
 
-  // Responsive cell sizes based on N
-  const getCellSizeClass = () => {
-    if (n <= 5) return 'w-14 h-14 sm:w-16 sm:h-16';
-    if (n <= 8) return 'w-11 h-11 sm:w-14 sm:h-14';
-    if (n <= 10) return 'w-9 h-9 sm:w-11 sm:h-11';
-    if (n <= 12) return 'w-7 h-7 sm:w-9 sm:h-9';
-    return 'w-6 h-6 sm:w-7 sm:h-7';
+  // Use pixel-based sizing to avoid any Tailwind overflow issues
+  const getCellSize = () => {
+    if (n <= 4) return 64;
+    if (n <= 6) return 56;
+    if (n <= 8) return 48;
+    if (n <= 10) return 40;
+    if (n <= 12) return 34;
+    return 28;
   };
 
-  const getQueenSizeClass = () => {
-    if (n <= 5) return 'text-2xl sm:text-3xl';
-    if (n <= 8) return 'text-xl sm:text-2xl';
-    if (n <= 10) return 'text-lg sm:text-xl';
-    if (n <= 12) return 'text-base sm:text-lg';
-    return 'text-sm sm:text-base';
+  const getQueenFontSize = () => {
+    if (n <= 4) return 32;
+    if (n <= 6) return 28;
+    if (n <= 8) return 24;
+    if (n <= 10) return 20;
+    if (n <= 12) return 16;
+    return 14;
   };
 
-  const cellSize = getCellSizeClass();
-  const queenSize = getQueenSizeClass();
+  const cellPx = getCellSize();
+  const queenFontPx = getQueenFontSize();
+  const gap = 1;
 
-  const getCellClasses = (row, col) => {
+  const getCellBg = (row, col) => {
     const isQueen = queenSet.has(`${row}-${col}`);
     const isDark = (row + col) % 2 === 1;
     const attacks = attackMap[row]?.[col] ?? 0;
+    const isChecking = checkingCell && checkingCell.row === row && checkingCell.col === col;
 
-    if (isQueen) {
-      return 'queen-cell';
-    }
+    if (isChecking) return 'cell-checking';
+    if (isQueen) return 'queen-cell';
 
     if (showConstraints && queens.length > 0) {
-      if (attacks > 0) {
-        return isDark ? 'cell-attacked-dark' : 'cell-attacked-light';
-      } else {
-        return isDark ? 'cell-safe-dark' : 'cell-safe-light';
-      }
+      if (attacks > 0) return isDark ? 'cell-attacked-dark' : 'cell-attacked-light';
+      return isDark ? 'cell-safe-dark' : 'cell-safe-light';
     }
 
     return isDark ? 'cell-dark' : 'cell-light';
@@ -91,37 +95,54 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     };
   };
 
-  const labelSize = n <= 8 ? 'text-xs' : n <= 12 ? 'text-[10px]' : 'text-[9px]';
+  const labelSize = n <= 8 ? 12 : n <= 12 ? 10 : 9;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', overflow: 'visible' }}>
       {/* Column labels */}
-      <div className="flex ml-8" style={{ gap: '1px' }}>
+      <div style={{ display: 'flex', marginLeft: `${cellPx * 0.5 + 8}px`, gap: `${gap}px`, overflow: 'visible' }}>
         {Array.from({ length: n }, (_, i) => (
-          <div key={i} className={`${cellSize} flex items-center justify-center ${labelSize} font-mono text-surface-500 font-medium`}>
+          <div
+            key={i}
+            style={{
+              width: cellPx, height: 20,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: labelSize, fontFamily: 'monospace', color: '#6b7280', fontWeight: 500,
+            }}
+          >
             {i}
           </div>
         ))}
       </div>
 
-      <div className="flex">
+      <div style={{ display: 'flex', overflow: 'visible' }}>
         {/* Row labels */}
-        <div className="flex flex-col mr-1.5" style={{ gap: '1px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', marginRight: 6, gap: `${gap}px`, overflow: 'visible' }}>
           {Array.from({ length: n }, (_, i) => (
-            <div key={i} className={`${cellSize} flex items-center justify-center ${labelSize} font-mono text-surface-500 font-medium`}>
+            <div
+              key={i}
+              style={{
+                width: 20, height: cellPx,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: labelSize, fontFamily: 'monospace', color: '#6b7280', fontWeight: 500,
+              }}
+            >
               {i}
             </div>
           ))}
         </div>
 
-        {/* Board grid — NO overflow hidden so queens on bottom row render */}
+        {/* Board grid - uses explicit pixel dimensions, NO overflow hidden */}
         <div
-          className="board-grid rounded-xl border border-surface-600/30 shadow-2xl shadow-black/40"
+          className="board-grid rounded-xl border border-surface-600/30"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${n}, 1fr)`,
-            gap: '1px',
+            gridTemplateColumns: `repeat(${n}, ${cellPx}px)`,
+            gridTemplateRows: `repeat(${n}, ${cellPx}px)`,
+            gap: `${gap}px`,
             background: 'rgba(30, 41, 59, 0.5)',
+            overflow: 'visible',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           }}
         >
           {Array.from({ length: n }, (_, row) =>
@@ -132,22 +153,40 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
               const isFirstCol = col === 0;
               const isLastCol = col === n - 1;
 
-              // Corner rounding
-              let cornerClass = '';
-              if (isFirstRow && isFirstCol) cornerClass = 'rounded-tl-xl';
-              else if (isFirstRow && isLastCol) cornerClass = 'rounded-tr-xl';
-              else if (isLastRow && isFirstCol) cornerClass = 'rounded-bl-xl';
-              else if (isLastRow && isLastCol) cornerClass = 'rounded-br-xl';
+              let borderRadius = '';
+              if (isFirstRow && isFirstCol) borderRadius = '12px 0 0 0';
+              else if (isFirstRow && isLastCol) borderRadius = '0 12px 0 0';
+              else if (isLastRow && isFirstCol) borderRadius = '0 0 0 12px';
+              else if (isLastRow && isLastCol) borderRadius = '0 0 12px 0';
 
               return (
                 <div
                   key={`${row}-${col}`}
-                  className={`${cellSize} flex items-center justify-center transition-all duration-300 relative ${getCellClasses(row, col)} ${cornerClass}`}
-                  style={getCellStyle(row, col)}
+                  className={`${getCellBg(row, col)} transition-all duration-200`}
+                  style={{
+                    width: cellPx,
+                    height: cellPx,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'visible',
+                    borderRadius,
+                    ...getCellStyle(row, col),
+                  }}
                 >
                   {isQueen && (
                     <span
-                      className={`queen-piece ${queenSize} z-10`}
+                      className="queen-piece"
+                      style={{
+                        fontSize: queenFontPx,
+                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                      }}
                       role="img"
                       aria-label="queen"
                     >
@@ -155,7 +194,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
                     </span>
                   )}
                   {!isQueen && showHeatmap && (attackMap[row]?.[col] ?? 0) > 0 && (
-                    <span className="text-[9px] font-mono text-red-300/50 font-bold">
+                    <span style={{ fontSize: 9, fontFamily: 'monospace', color: 'rgba(252, 165, 165, 0.5)', fontWeight: 700 }}>
                       {attackMap[row][col]}
                     </span>
                   )}
@@ -168,17 +207,17 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
 
       {/* Legend */}
       {showConstraints && queens.length > 0 && (
-        <div className="flex items-center gap-5 mt-3 text-xs text-surface-400">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded queen-cell shadow-sm"></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 8, fontSize: 12, color: '#9aa5b4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'linear-gradient(135deg, #fbbf24, #d97706)' }} />
             <span>Queen</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-emerald-500/30 border border-emerald-500/20"></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(16, 185, 129, 0.3)', border: '1px solid rgba(16, 185, 129, 0.2)' }} />
             <span>Safe</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-500/30 border border-red-500/20"></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(239, 68, 68, 0.3)', border: '1px solid rgba(239, 68, 68, 0.2)' }} />
             <span>Attacked</span>
           </div>
         </div>

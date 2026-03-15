@@ -8,7 +8,6 @@ import StatePanel from './components/StatePanel.jsx';
 
 const API_BASE = '';
 
-// All N values from 1 to 15 (odd AND even)
 const N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 const ALGO_NAMES = ['bfs', 'dfs', 'best_first', 'astar'];
@@ -26,12 +25,27 @@ export default function App() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [activeTab, setActiveTab] = useState('visualizer');
 
-  // Animation state for step-by-step playback
+  // Animation state
   const [animQueens, setAnimQueens] = useState([]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [animSpeed, setAnimSpeed] = useState(200);
+  const [isPaused, setIsPaused] = useState(false);
   const animRef = useRef(null);
+  const pausedRef = useRef(false);
 
-  // Fetch agent info when N changes
+  // Solutions state
+  const [solutionsData, setSolutionsData] = useState(null);
+  const [loadingSolutions, setLoadingSolutions] = useState(false);
+  const [currentSolutionIdx, setCurrentSolutionIdx] = useState(0);
+  const [showSolutionBrowser, setShowSolutionBrowser] = useState(false);
+
+  // Backtracking visualization
+  const [isBacktracking, setIsBacktracking] = useState(false);
+  const [backtrackStep, setBacktrackStep] = useState(0);
+  const [checkingCell, setCheckingCell] = useState(null);
+  const backtrackRef = useRef(null);
+
+  // Fetch agent info
   useEffect(() => {
     fetch(`${API_BASE}/agent/${n}`)
       .then(res => res.json())
@@ -39,19 +53,37 @@ export default function App() {
       .catch(() => {});
   }, [n]);
 
-  // Fetch historical results
+  // Fetch runs
   const fetchRuns = useCallback(() => {
     fetch(`${API_BASE}/results`)
       .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setAllRuns(data);
-      })
+      .then(data => { if (Array.isArray(data)) setAllRuns(data); })
       .catch(() => {});
   }, []);
 
+  useEffect(() => { fetchRuns(); }, [fetchRuns]);
+
+  // Fetch solutions count when N changes
   useEffect(() => {
-    fetchRuns();
-  }, [fetchRuns]);
+    setSolutionsData(null);
+    setShowSolutionBrowser(false);
+    setCurrentSolutionIdx(0);
+  }, [n]);
+
+  const fetchSolutions = async () => {
+    setLoadingSolutions(true);
+    try {
+      const res = await fetch(`${API_BASE}/solutions/${n}`);
+      const data = await res.json();
+      setSolutionsData(data);
+      setShowSolutionBrowser(true);
+      setCurrentSolutionIdx(0);
+    } catch (err) {
+      console.error('Solutions fetch error:', err);
+    } finally {
+      setLoadingSolutions(false);
+    }
+  };
 
   // Solve
   const handleSolve = async () => {
@@ -59,7 +91,11 @@ export default function App() {
     setResults(null);
     setAnimQueens([]);
     setIsAnimating(false);
+    setIsBacktracking(false);
+    setCheckingCell(null);
+    setShowSolutionBrowser(false);
     if (animRef.current) clearTimeout(animRef.current);
+    if (backtrackRef.current) clearTimeout(backtrackRef.current);
 
     try {
       const res = await fetch(`${API_BASE}/solve`, {
@@ -71,7 +107,6 @@ export default function App() {
       setResults(data);
       fetchRuns();
 
-      // Find best solved algorithm for display
       const best = ALGO_NAMES
         .filter(a => data[a]?.solved)
         .sort((a, b) => (data[a]?.time_ms || Infinity) - (data[b]?.time_ms || Infinity))[0];
@@ -95,13 +130,19 @@ export default function App() {
   const animateQueens = (solution) => {
     setIsAnimating(true);
     setAnimQueens([]);
+    setIsPaused(false);
+    pausedRef.current = false;
     let step = 0;
 
     const next = () => {
+      if (pausedRef.current) {
+        animRef.current = setTimeout(next, 100);
+        return;
+      }
       if (step < solution.length) {
         setAnimQueens(prev => [...prev, solution[step]]);
         step++;
-        animRef.current = setTimeout(next, 250);
+        animRef.current = setTimeout(next, animSpeed);
       } else {
         setIsAnimating(false);
       }
@@ -112,6 +153,9 @@ export default function App() {
   const handleAlgoClick = (algo) => {
     setActiveAlgo(algo);
     if (animRef.current) clearTimeout(animRef.current);
+    if (backtrackRef.current) clearTimeout(backtrackRef.current);
+    setIsBacktracking(false);
+    setCheckingCell(null);
     const r = results?.[algo];
     if (r?.state && r.state.length > 0) {
       animateQueens(r.state);
@@ -121,17 +165,84 @@ export default function App() {
     }
   };
 
-  // Current queens to display
-  const displayQueens = isAnimating || animQueens.length > 0
-    ? animQueens
-    : results?.[activeAlgo]?.state || [];
+  // Backtracking visualization using trace from solutions API
+  const startBacktrackVisualization = async () => {
+    if (n > 8) {
+      alert('Backtracking visualization is available for N <= 8 to keep animations smooth.');
+      return;
+    }
 
-  // Run All button — run for a selection of N values
+    setIsBacktracking(true);
+    setBacktrackStep(0);
+    setAnimQueens([]);
+    setCheckingCell(null);
+
+    let traceData = solutionsData;
+    if (!traceData || !traceData.trace || traceData.trace.length === 0) {
+      setLoadingSolutions(true);
+      try {
+        const res = await fetch(`${API_BASE}/solutions/${n}`);
+        traceData = await res.json();
+        setSolutionsData(traceData);
+      } catch { return; } finally { setLoadingSolutions(false); }
+    }
+
+    if (!traceData?.trace?.length) {
+      setIsBacktracking(false);
+      return;
+    }
+
+    const trace = traceData.trace;
+    let idx = 0;
+
+    const playStep = () => {
+      if (idx >= trace.length) {
+        setIsBacktracking(false);
+        setCheckingCell(null);
+        return;
+      }
+
+      const step = trace[idx];
+      setBacktrackStep(idx);
+
+      if (step.type === 'place') {
+        setAnimQueens(step.state);
+        setCheckingCell({ row: step.row, col: step.col });
+      } else if (step.type === 'remove') {
+        setAnimQueens(step.state);
+        setCheckingCell(null);
+      } else if (step.type === 'solution') {
+        setAnimQueens(step.state);
+        setCheckingCell(null);
+      }
+
+      idx++;
+      backtrackRef.current = setTimeout(playStep, Math.max(30, animSpeed / 2));
+    };
+
+    playStep();
+  };
+
+  const stopBacktrackVisualization = () => {
+    if (backtrackRef.current) clearTimeout(backtrackRef.current);
+    setIsBacktracking(false);
+    setCheckingCell(null);
+  };
+
+  // Display queens
+  const displayQueens = (() => {
+    if (isBacktracking || isAnimating || animQueens.length > 0) return animQueens;
+    if (showSolutionBrowser && solutionsData?.all_solutions?.length > 0) {
+      return solutionsData.all_solutions[currentSolutionIdx] || [];
+    }
+    return results?.[activeAlgo]?.state || [];
+  })();
+
+  // Run All
   const [runningAll, setRunningAll] = useState(false);
   const handleRunAll = async () => {
     setRunningAll(true);
-    const runValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    for (const nVal of runValues) {
+    for (const nVal of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
       try {
         await fetch(`${API_BASE}/solve`, {
           method: 'POST',
@@ -146,13 +257,14 @@ export default function App() {
 
   const tabs = [
     { id: 'visualizer', label: 'Visualizer', icon: '♛' },
+    { id: 'solutions', label: 'All Solutions', icon: '🔢' },
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'agent', label: 'Agent', icon: '🤖' },
   ];
 
   return (
     <div className="min-h-screen bg-grid-pattern">
-      {/* Animated gradient blobs */}
+      {/* Ambient blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-brand-600/10 rounded-full blur-[120px] animate-pulse-slow" />
         <div className="absolute top-1/2 -right-40 w-96 h-96 bg-purple-600/8 rounded-full blur-[150px] animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
@@ -179,14 +291,22 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              {/* N Selector - Scrollable */}
+              {/* N Selector */}
               <div className="flex items-center gap-2 bg-surface-800/80 rounded-xl px-3 py-2 border border-surface-700/50 backdrop-blur-sm">
                 <span className="text-xs text-surface-400 font-semibold whitespace-nowrap">N =</span>
                 <div className="flex gap-1 overflow-x-auto max-w-[280px] sm:max-w-none scrollbar-hide">
                   {N_OPTIONS.map(nVal => (
                     <button
                       key={nVal}
-                      onClick={() => { setN(nVal); setResults(null); setAnimQueens([]); }}
+                      onClick={() => {
+                        setN(nVal);
+                        setResults(null);
+                        setAnimQueens([]);
+                        setIsBacktracking(false);
+                        setCheckingCell(null);
+                        if (animRef.current) clearTimeout(animRef.current);
+                        if (backtrackRef.current) clearTimeout(backtrackRef.current);
+                      }}
                       className={`min-w-[32px] h-8 rounded-lg text-xs font-bold transition-all duration-200 flex-shrink-0 ${
                         n === nVal
                           ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/40 scale-110'
@@ -200,11 +320,7 @@ export default function App() {
               </div>
 
               {/* Solve Button */}
-              <button
-                onClick={handleSolve}
-                disabled={isRunning}
-                className="btn-primary flex items-center gap-2 group"
-              >
+              <button onClick={handleSolve} disabled={isRunning} className="btn-primary flex items-center gap-2 group">
                 {isRunning ? (
                   <>
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -229,14 +345,14 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
                   activeTab === tab.id
                     ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30'
                     : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'
                 }`}
               >
                 <span className="text-base">{tab.icon}</span>
-                <span>{tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -255,33 +371,36 @@ export default function App() {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Algorithm Selector */}
+              {/* Algorithm Selector + Controls */}
               {results && (
-                <div className="mb-6 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-surface-400 font-semibold mr-1">Algorithm:</span>
-                  {ALGO_NAMES.map(algo => {
-                    const r = results[algo];
-                    return (
-                      <button
-                        key={algo}
-                        onClick={() => handleAlgoClick(algo)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
-                          activeAlgo === algo
-                            ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30'
-                            : r?.solved
-                            ? 'bg-surface-800/80 text-surface-300 border border-surface-600/50 hover:border-brand-500/40 hover:bg-surface-700/80'
-                            : 'bg-surface-800/40 text-surface-500 border border-surface-700/30'
-                        }`}
-                      >
-                        <span>{ALGO_ICONS[algo]}</span>
-                        {ALGO_LABELS[algo]}
-                        {r?.solved && <span className="text-emerald-400">✓</span>}
-                        {r?.error && <span className="text-red-400">✗</span>}
-                      </button>
-                    );
-                  })}
+                <div className="mb-6">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-xs text-surface-400 font-semibold mr-1">Algorithm:</span>
+                    {ALGO_NAMES.map(algo => {
+                      const r = results[algo];
+                      return (
+                        <button
+                          key={algo}
+                          onClick={() => handleAlgoClick(algo)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                            activeAlgo === algo
+                              ? 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/30'
+                              : r?.solved
+                              ? 'bg-surface-800/80 text-surface-300 border border-surface-600/50 hover:border-brand-500/40'
+                              : 'bg-surface-800/40 text-surface-500 border border-surface-700/30'
+                          }`}
+                        >
+                          <span>{ALGO_ICONS[algo]}</span>
+                          {ALGO_LABELS[algo]}
+                          {r?.solved && <span className="text-emerald-400">✓</span>}
+                          {r?.error && <span className="text-red-400">✗</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                  <div className="ml-auto flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Toggles */}
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${showConstraints ? 'bg-brand-600' : 'bg-surface-700'}`}>
                         <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${showConstraints ? 'translate-x-4' : ''}`} />
@@ -294,6 +413,34 @@ export default function App() {
                       </div>
                       <span className="text-xs text-surface-400 group-hover:text-surface-300">Heatmap</span>
                     </label>
+
+                    {/* Speed Control */}
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-[10px] text-surface-500 font-semibold">Speed:</span>
+                      <input
+                        type="range"
+                        min="30"
+                        max="500"
+                        value={510 - animSpeed}
+                        onChange={(e) => setAnimSpeed(510 - parseInt(e.target.value))}
+                        className="w-20"
+                      />
+                      <span className="text-[10px] text-surface-400 font-mono w-10">{animSpeed}ms</span>
+                    </div>
+
+                    {/* Backtrack Viz Button */}
+                    {n <= 8 && (
+                      <button
+                        onClick={isBacktracking ? stopBacktrackVisualization : startBacktrackVisualization}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          isBacktracking
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : 'bg-surface-800/80 text-surface-300 border border-surface-600/50 hover:border-brand-500/40'
+                        }`}
+                      >
+                        {isBacktracking ? '⏹ Stop' : '▶ Backtrack Viz'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -301,24 +448,33 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left - Board */}
                 <div className="lg:col-span-2">
-                  <div className="glass-card p-6 sm:p-8 flex flex-col items-center">
+                  <div className="glass-card p-6 sm:p-8 flex flex-col items-center" style={{ overflow: 'visible' }}>
                     <div className="flex items-center justify-between w-full mb-5">
                       <h3 className="text-lg font-bold text-white flex items-center gap-2">
                         <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-sm shadow shadow-amber-500/30">♛</span>
                         <span>Board — {n}x{n}</span>
                       </h3>
-                      {isAnimating && (
-                        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
-                          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-                          <span className="text-xs text-amber-400 font-medium">Placing queens...</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isAnimating && (
+                          <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="text-xs text-amber-400 font-medium">Placing queens...</span>
+                          </div>
+                        )}
+                        {isBacktracking && (
+                          <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1.5">
+                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                            <span className="text-xs text-blue-400 font-medium">Step {backtrackStep}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <Board
                       n={n}
                       queens={displayQueens}
                       showConstraints={showConstraints}
                       showHeatmap={showHeatmap}
+                      checkingCell={checkingCell}
                     />
                   </div>
                 </div>
@@ -330,6 +486,7 @@ export default function App() {
                     n={n}
                     activeAlgo={activeAlgo}
                     results={results}
+                    solutionsData={solutionsData}
                   />
                 </div>
               </div>
@@ -337,6 +494,156 @@ export default function App() {
               {/* Solver Race */}
               <div className="mt-6">
                 <SolverRace results={results} isRunning={isRunning} />
+              </div>
+            </motion.div>
+          )}
+
+          {/* ===== ALL SOLUTIONS TAB ===== */}
+          {activeTab === 'solutions' && (
+            <motion.div
+              key="solutions"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="glass-card p-6 mb-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm shadow shadow-violet-500/30">
+                      🔢
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">All Solutions for N={n}</h3>
+                      <p className="text-xs text-surface-400 mt-0.5">
+                        Find and browse every valid queen placement
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={fetchSolutions}
+                    disabled={loadingSolutions}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {loadingSolutions ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <span>Computing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🔍</span>
+                        <span>Find All Solutions</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Results */}
+                {solutionsData && (
+                  <div className="space-y-4 solution-fade-in">
+                    {/* Stats row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="stat-pill">
+                        <span className="stat-label">Total Solutions</span>
+                        <span className="stat-value text-lg text-amber-300">{solutionsData.total_solutions?.toLocaleString()}</span>
+                      </div>
+                      <div className="stat-pill">
+                        <span className="stat-label">Total Steps</span>
+                        <span className="stat-value">{solutionsData.total_steps?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="stat-pill">
+                        <span className="stat-label">Compute Time</span>
+                        <span className="stat-value">{solutionsData.time_ms?.toFixed(2) || '0'} ms</span>
+                      </div>
+                      <div className="stat-pill">
+                        <span className="stat-label">Board Size</span>
+                        <span className="stat-value">{n} x {n}</span>
+                      </div>
+                    </div>
+
+                    {/* Solution browser */}
+                    {solutionsData.all_solutions && solutionsData.all_solutions.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-semibold text-surface-300">
+                            Solution {currentSolutionIdx + 1} of {solutionsData.all_solutions.length}
+                            {solutionsData.all_solutions.length < solutionsData.total_solutions && (
+                              <span className="text-surface-500 ml-1">(showing first {solutionsData.all_solutions.length})</span>
+                            )}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setCurrentSolutionIdx(Math.max(0, currentSolutionIdx - 1))}
+                              disabled={currentSolutionIdx === 0}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-800/80 text-surface-300 border border-surface-600/50 hover:border-brand-500/40 disabled:opacity-30"
+                            >
+                              ← Prev
+                            </button>
+                            <button
+                              onClick={() => setCurrentSolutionIdx(Math.min(solutionsData.all_solutions.length - 1, currentSolutionIdx + 1))}
+                              disabled={currentSolutionIdx >= solutionsData.all_solutions.length - 1}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-800/80 text-surface-300 border border-surface-600/50 hover:border-brand-500/40 disabled:opacity-30"
+                            >
+                              Next →
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex justify-center">
+                          <Board
+                            n={n}
+                            queens={solutionsData.all_solutions[currentSolutionIdx]}
+                            showConstraints={true}
+                            showHeatmap={false}
+                          />
+                        </div>
+                        <div className="mt-3 text-center">
+                          <span className="font-mono text-xs text-brand-300">
+                            State = [{solutionsData.all_solutions[currentSolutionIdx]?.join(', ')}]
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {solutionsData.total_solutions === 0 && (
+                      <div className="text-center py-8">
+                        <span className="text-4xl mb-3 block">😔</span>
+                        <p className="text-surface-400 text-sm">No solutions exist for N={n}</p>
+                        <p className="text-surface-500 text-xs mt-1">The {n}-Queens problem has no valid placement.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!solutionsData && (
+                  <div className="text-center py-12 text-surface-500">
+                    <span className="text-4xl mb-3 block opacity-40">🔍</span>
+                    <p className="text-sm">Click "Find All Solutions" to enumerate every valid placement for N={n}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Known solutions table */}
+              <div className="glass-card p-6">
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <span>📚</span> Known Solution Counts (N=1 to 15)
+                </h3>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(nv => {
+                    const counts = {1:1,2:0,3:0,4:2,5:10,6:4,7:40,8:92,9:352,10:724,11:2680,12:14200,13:73712,14:365596,15:2279184};
+                    return (
+                      <div key={nv} className={`p-3 rounded-xl border text-center transition-all ${
+                        nv === n ? 'bg-brand-500/10 border-brand-500/30' : 'bg-surface-800/40 border-surface-700/20'
+                      }`}>
+                        <div className="text-[10px] text-surface-500 font-semibold">N={nv}</div>
+                        <div className="text-sm font-bold font-mono text-surface-200">{counts[nv]?.toLocaleString()}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           )}
@@ -353,11 +660,7 @@ export default function App() {
             >
               <div className="flex items-center justify-between">
                 <div />
-                <button
-                  onClick={handleRunAll}
-                  disabled={runningAll}
-                  className="btn-primary flex items-center gap-2"
-                >
+                <button onClick={handleRunAll} disabled={runningAll} className="btn-primary flex items-center gap-2">
                   {runningAll ? (
                     <>
                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

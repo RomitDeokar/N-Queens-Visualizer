@@ -1,18 +1,19 @@
 """
 BFS Solver for N-Queens
 Breadth-First Search — queue-based uninformed search.
-Explores all states level by level using collections.deque.
+With node limit and timeout for large N.
 """
 
 from collections import deque
 import time
 import sys
 
-BFS_NODE_LIMIT = 100_000
+BFS_NODE_LIMIT = 50_000
+BFS_TIME_LIMIT_SEC = 5
 
 
 def is_safe(state, row, col):
-    """Check if placing a queen at (row, col) is safe given current state."""
+    """Check if placing a queen at (row, col) is safe."""
     for r in range(row):
         c = state[r]
         if c == col or abs(c - col) == abs(r - row):
@@ -21,27 +22,35 @@ def is_safe(state, row, col):
 
 
 def solve(n: int) -> dict:
-    """
-    Run BFS to solve the N-Queens problem.
-    Returns dict with algorithm, n, solved, nodes, time_ms, memory_kb, steps, state/error.
-    """
+    """Run BFS to solve the N-Queens problem with limits."""
     start = time.time()
     nodes_expanded = 0
     steps = 0
     peak_memory = 0
 
-    # Each state in the queue is a list of column positions, one per row placed so far
     queue = deque()
-    queue.append([])
+    queue.append(())  # Use tuples for memory efficiency
 
     while queue:
         state = queue.popleft()
         row = len(state)
         nodes_expanded += 1
 
-        mem = sys.getsizeof(queue)
-        if mem > peak_memory:
-            peak_memory = mem
+        # Check time limit
+        elapsed_sec = time.time() - start
+        if elapsed_sec > BFS_TIME_LIMIT_SEC:
+            elapsed = elapsed_sec * 1000
+            return {
+                "algorithm": "bfs",
+                "n": n,
+                "solved": False,
+                "nodes": nodes_expanded,
+                "time_ms": round(elapsed, 2),
+                "memory_kb": round(peak_memory / 1024, 2),
+                "steps": steps,
+                "error": f"BFS halted — time limit ({BFS_TIME_LIMIT_SEC}s) reached",
+                "state": list(state) if state else [],
+            }
 
         if nodes_expanded > BFS_NODE_LIMIT:
             elapsed = (time.time() - start) * 1000
@@ -53,9 +62,13 @@ def solve(n: int) -> dict:
                 "time_ms": round(elapsed, 2),
                 "memory_kb": round(peak_memory / 1024, 2),
                 "steps": steps,
-                "error": "BFS halted — node limit reached",
+                "error": f"BFS halted — node limit ({BFS_NODE_LIMIT:,}) reached",
                 "state": list(state) if state else [],
             }
+
+        mem = sys.getsizeof(queue)
+        if mem > peak_memory:
+            peak_memory = mem
 
         if row == n:
             elapsed = (time.time() - start) * 1000
@@ -73,8 +86,7 @@ def solve(n: int) -> dict:
         for col in range(n):
             steps += 1
             if is_safe(state, row, col):
-                new_state = list(state) + [col]
-                queue.append(new_state)
+                queue.append(state + (col,))
 
     elapsed = (time.time() - start) * 1000
     return {

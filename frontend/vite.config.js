@@ -7,11 +7,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
+      '/solve': 'http://localhost:8000',
+      '/solutions': 'http://localhost:8000',
+      '/status': 'http://localhost:8000',
+      '/results': 'http://localhost:8000',
+      '/agent': 'http://localhost:8000',
+      '/health': 'http://localhost:8000',
     }
   }
 })

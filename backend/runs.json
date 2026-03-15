@@ -1,22 +1,12 @@
 [
   {
-    "algorithm": "astar",
+    "algorithm": "dfs",
     "n": 5,
-    "nodes": 45,
-    "time_ms": 0.94,
-    "memory_kb": 0.18,
-    "steps": 220,
+    "nodes": 6,
+    "time_ms": 12361.71,
+    "memory_kb": 2.25,
+    "steps": 15,
     "solved": true,
-    "timestamp": 1773590258
-  }
-] {
-    "algorithm": "bfs",
-    "n": 5,
-    "nodes": 45,
-    "time_ms": 0.36,
-    "memory_kb": 1.26,
-    "steps": 220,
-    "solved": true,
-    "timestamp": 1773590258
+    "timestamp": 1773593560
   }
 ]

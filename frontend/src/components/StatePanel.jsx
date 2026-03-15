@@ -1,6 +1,8 @@
 import React from 'react';
 
-export default function StatePanel({ queens = [], n, activeAlgo, results }) {
+const KNOWN_SOLUTIONS = {1:1,2:0,3:0,4:2,5:10,6:4,7:40,8:92,9:352,10:724,11:2680,12:14200,13:73712,14:365596,15:2279184};
+
+export default function StatePanel({ queens = [], n, activeAlgo, results, solutionsData }) {
   const r = results?.[activeAlgo];
   const stateStr = queens.length > 0 ? `[${queens.join(', ')}]` : '[]';
 
@@ -33,6 +35,40 @@ export default function StatePanel({ queens = [], n, activeAlgo, results }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Total Solutions Info */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm shadow shadow-violet-500/30">
+            🔢
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Solution Count</h3>
+            <p className="text-[10px] text-surface-500">Total valid placements for N={n}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="stat-pill">
+            <span className="stat-label">Total Solutions</span>
+            <span className="stat-value text-amber-300 text-base">
+              {solutionsData?.total_solutions?.toLocaleString() ?? KNOWN_SOLUTIONS[n]?.toLocaleString() ?? '—'}
+            </span>
+          </div>
+          <div className="stat-pill">
+            <span className="stat-label">Search Steps</span>
+            <span className="stat-value">
+              {solutionsData?.total_steps?.toLocaleString() ?? '—'}
+            </span>
+          </div>
+        </div>
+
+        {KNOWN_SOLUTIONS[n] === 0 && (
+          <div className="mt-2 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <span className="text-xs text-red-400 font-medium">No solution exists for N={n}</span>
+          </div>
+        )}
       </div>
 
       {/* Search Snapshot */}
@@ -69,14 +105,14 @@ export default function StatePanel({ queens = [], n, activeAlgo, results }) {
 
           {r.solved && queens.length === n && (
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs text-emerald-400 font-medium">Solution found — all {n} queens placed safely</span>
             </div>
           )}
 
           {r.error && (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              <div className="w-2 h-2 rounded-full bg-red-400"></div>
+              <div className="w-2 h-2 rounded-full bg-red-400" />
               <span className="text-xs text-red-400 font-medium">{r.error}</span>
             </div>
           )}
