@@ -47,6 +47,9 @@ export default function App() {
   const backtrackPausedRef = useRef(false);
   const [backtrackPaused, setBacktrackPaused] = useState(false);
 
+  // Store the final completed solution so it persists after animation
+  const [completedSolution, setCompletedSolution] = useState([]);
+
   // Fetch agent info
   useEffect(() => {
     fetch(`${API_BASE}/agent/${n}`)
@@ -71,6 +74,7 @@ export default function App() {
     setShowSolutionBrowser(false);
     setCurrentSolutionIdx(0);
     setTraceData([]);
+    setCompletedSolution([]);
   }, [n]);
 
   const fetchSolutions = async () => {
@@ -94,6 +98,7 @@ export default function App() {
     setIsRunning(true);
     setResults(null);
     setAnimQueens([]);
+    setCompletedSolution([]);
     setIsAnimating(false);
     setIsBacktracking(false);
     setCheckingCell(null);
@@ -131,9 +136,13 @@ export default function App() {
     }
   };
 
+  // FIX: Animation function - capture step value properly to avoid closure issues
   const animateQueens = (solution) => {
+    if (!solution || solution.length === 0) return;
+    
     setIsAnimating(true);
     setAnimQueens([]);
+    setCompletedSolution([]);
     setIsPaused(false);
     pausedRef.current = false;
     let step = 0;
@@ -144,11 +153,23 @@ export default function App() {
         return;
       }
       if (step < solution.length) {
-        setAnimQueens(prev => [...prev, solution[step]]);
+        // FIX: Capture the current step value in a local variable
+        // to avoid closure issues with React's async state updates
+        const currentStep = step;
+        const queensSoFar = solution.slice(0, currentStep + 1);
+        setAnimQueens(queensSoFar);
         step++;
-        animRef.current = setTimeout(next, animSpeed);
-      } else {
-        setIsAnimating(false);
+        
+        if (step >= solution.length) {
+          // Last queen placed - mark animation complete after a brief delay
+          // so the last queen is visible before we stop animating
+          animRef.current = setTimeout(() => {
+            setCompletedSolution([...solution]);
+            setIsAnimating(false);
+          }, Math.max(animSpeed, 300));
+        } else {
+          animRef.current = setTimeout(next, animSpeed);
+        }
       }
     };
     next();
@@ -160,6 +181,7 @@ export default function App() {
     if (backtrackRef.current) clearTimeout(backtrackRef.current);
     setIsBacktracking(false);
     setCheckingCell(null);
+    setCompletedSolution([]);
     const r = results?.[algo];
     if (r?.state && r.state.length > 0) {
       animateQueens(r.state);
@@ -172,13 +194,14 @@ export default function App() {
   // Backtracking visualization with full trace
   const startBacktrackVisualization = async () => {
     if (n > 8) {
-      alert('Backtracking visualization is available for N <= 8 to keep animations smooth.');
+      alert('Backtracking visualization is available for N ≤ 8 to keep animations smooth.');
       return;
     }
 
     setIsBacktracking(true);
     setBacktrackStep(0);
     setAnimQueens([]);
+    setCompletedSolution([]);
     setCheckingCell(null);
     setBacktrackPaused(false);
     backtrackPausedRef.current = false;
@@ -220,13 +243,14 @@ export default function App() {
       if (step.type === 'check') {
         setCheckingCell({ row: step.row, col: step.col });
       } else if (step.type === 'place') {
-        setAnimQueens(step.state.slice());
+        setAnimQueens([...step.state]);
         setCheckingCell({ row: step.row, col: step.col });
       } else if (step.type === 'remove') {
-        setAnimQueens(step.state.slice());
+        setAnimQueens([...step.state]);
         setCheckingCell(null);
       } else if (step.type === 'solution') {
-        setAnimQueens(step.state.slice());
+        setAnimQueens([...step.state]);
+        setCompletedSolution([...step.state]);
         setCheckingCell(null);
       }
 
@@ -252,12 +276,25 @@ export default function App() {
     backtrackPausedRef.current = false;
   };
 
-  // Display queens - determine what to show
+  // FIX: Display queens - determine what to show with proper fallback chain
   const displayQueens = (() => {
-    if (isBacktracking || isAnimating || animQueens.length > 0) return animQueens;
+    // During active animations, show the animated queens
+    if (isBacktracking || isAnimating) {
+      return animQueens;
+    }
+    // If we have animated queens that were set (animation just ended), show them
+    if (animQueens.length > 0) {
+      return animQueens;
+    }
+    // If we have a completed solution stored, use that
+    if (completedSolution.length > 0) {
+      return completedSolution;
+    }
+    // If browsing solutions, show the current solution
     if (showSolutionBrowser && solutionsData?.all_solutions?.length > 0) {
       return solutionsData.all_solutions[currentSolutionIdx] || [];
     }
+    // Fall back to the active algorithm's result
     return results?.[activeAlgo]?.state || [];
   })();
 
@@ -328,6 +365,7 @@ export default function App() {
                         setN(nVal);
                         setResults(null);
                         setAnimQueens([]);
+                        setCompletedSolution([]);
                         setIsBacktracking(false);
                         setCheckingCell(null);
                         setTraceData([]);
@@ -405,8 +443,8 @@ export default function App() {
                         >
                           <span>{ALGO_ICONS[algo]}</span>
                           {ALGO_LABELS[algo]}
-                          {r?.solved && <span className="text-emerald-400">✓</span>}
-                          {r?.error && <span className="text-red-400">✗</span>}
+                          {r?.solved && <span className="algo-check">✓</span>}
+                          {r?.error && <span className="algo-cross">✗</span>}
                         </button>
                       );
                     })}
