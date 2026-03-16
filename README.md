@@ -1,7 +1,9 @@
 # Comparative AI Agent for N-Queens
 ### Search Algorithms, CSP, and Intelligent Agent Analysis
 
-> An AI system that solves the N-Queens problem using four algorithms from the syllabus, compares their performance, and frames the entire solution as an Intelligent Agent — directly mapping to Units 1, 2, and 3.
+> An AI system that solves the N-Queens problem using four algorithms from the syllabus, compares their performance, and frames the entire solution as an Intelligent Agent 
+
+https://5173-i8a1w7kvg2t4c1ryn3gce-82b888ba.sandbox.novita.ai/
 
 ---
 
