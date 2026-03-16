@@ -1,0 +1,12 @@
+[
+  {
+    "algorithm": "astar",
+    "n": 4,
+    "nodes": 7,
+    "time_ms": 0.08,
+    "memory_kb": 0.41,
+    "steps": 24,
+    "solved": true,
+    "timestamp": 1773645735
+  }
+]
