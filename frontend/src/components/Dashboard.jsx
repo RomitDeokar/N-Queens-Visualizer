@@ -4,6 +4,7 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+
   BarElement,
   Title,
   Tooltip,
@@ -24,6 +25,13 @@ const ALGO_LABELS = {
   dfs: 'DFS',
   best_first: 'Best-First',
   astar: 'A*',
+};
+
+const ALGO_TYPES = {
+  bfs: 'Uninformed',
+  dfs: 'Uninformed',
+  best_first: 'Informed',
+  astar: 'Informed',
 };
 
 export default function Dashboard({ allResults }) {
@@ -61,16 +69,33 @@ export default function Dashboard({ allResults }) {
       data: nValues.map(n => {
         const run = grouped[`${n}-${algo}`];
         if (!run) return null;
+        // For time/nodes/steps/memory, show data for both solved AND failed runs
         const val = run[metric];
         if (val === undefined || val === null) return null;
-        // Round to 2 decimal places for display consistency
         return Math.round(val * 100) / 100;
       }),
-      backgroundColor: ALGO_COLORS[algo].bg,
-      borderColor: ALGO_COLORS[algo].border,
+      backgroundColor: nValues.map(n => {
+        const run = grouped[`${n}-${algo}`];
+        if (run && !run.solved) {
+          // Show failed runs with a striped/lighter color
+          return ALGO_COLORS[algo].bg.replace('0.75', '0.3');
+        }
+        return ALGO_COLORS[algo].bg;
+      }),
+      borderColor: nValues.map(n => {
+        const run = grouped[`${n}-${algo}`];
+        if (run && !run.solved) {
+          return ALGO_COLORS[algo].border.replace('1)', '0.5)');
+        }
+        return ALGO_COLORS[algo].border;
+      }),
       borderWidth: 2,
       borderRadius: 6,
       borderSkipped: false,
+      borderDash: nValues.map(n => {
+        const run = grouped[`${n}-${algo}`];
+        return (run && !run.solved) ? [4, 4] : [];
+      }),
     })),
   });
 
@@ -112,10 +137,17 @@ export default function Dashboard({ allResults }) {
         callbacks: {
           label: function(context) {
             const value = context.parsed.y;
+            const datasetIdx = context.datasetIndex;
+            const dataIdx = context.dataIndex;
+            const algo = algoNames[datasetIdx];
+            const n = nValues[dataIdx];
+            const run = grouped[`${n}-${algo}`];
+            const prefix = run && !run.solved ? '[FAILED] ' : '';
+            
             if (value === null || value === undefined) return `${context.dataset.label}: N/A`;
-            if (isTime) return `${context.dataset.label}: ${value.toFixed(2)} ms`;
-            if (yLabel.includes('KB')) return `${context.dataset.label}: ${value.toFixed(1)} KB`;
-            return `${context.dataset.label}: ${value.toLocaleString()}`;
+            if (isTime) return `${prefix}${context.dataset.label}: ${value.toFixed(2)} ms`;
+            if (yLabel.includes('KB')) return `${prefix}${context.dataset.label}: ${value.toFixed(1)} KB`;
+            return `${prefix}${context.dataset.label}: ${value.toLocaleString()}`;
           }
         }
       },
@@ -133,7 +165,8 @@ export default function Dashboard({ allResults }) {
           color: '#9aa5b4',
           font: { size: 10, family: 'JetBrains Mono, monospace' },
           callback: function(value) {
-            if (isTime) return value.toFixed(1);
+            if (isTime) return value >= 1 ? value.toFixed(1) : value.toFixed(2);
+            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
             if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
             return value;
           }
@@ -154,19 +187,24 @@ export default function Dashboard({ allResults }) {
     if (nValues.length === 0) return null;
     const stats = {};
     for (const algo of algoNames) {
-      let totalTime = 0, count = 0, totalNodes = 0;
+      let totalTime = 0, count = 0, totalNodes = 0, failCount = 0;
       for (const n of nValues) {
         const run = grouped[`${n}-${algo}`];
-        if (run && run.solved) {
-          totalTime += run.time_ms || 0;
-          totalNodes += run.nodes || 0;
-          count++;
+        if (run) {
+          if (run.solved) {
+            totalTime += run.time_ms || 0;
+            totalNodes += run.nodes || 0;
+            count++;
+          } else {
+            failCount++;
+          }
         }
       }
       stats[algo] = {
         avgTime: count > 0 ? totalTime / count : null,
         totalNodes: totalNodes,
         solved: count,
+        failed: failCount,
         total: nValues.length,
       };
     }
@@ -182,11 +220,15 @@ export default function Dashboard({ allResults }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {algoNames.map(algo => {
             const s = summaryStats[algo];
+            const isInformed = ALGO_TYPES[algo] === 'Informed';
             return (
               <div key={algo} className="glass-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: ALGO_COLORS[algo].border }} />
                   <span className="text-sm font-bold text-surface-200">{ALGO_LABELS[algo]}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
+                    isInformed ? 'bg-purple-500/10 text-purple-300 border border-purple-500/20' : 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
+                  }`}>{ALGO_TYPES[algo]}</span>
                 </div>
                 <div className="space-y-2">
                   <div>
@@ -196,9 +238,18 @@ export default function Dashboard({ allResults }) {
                     </div>
                   </div>
                   <div className="flex justify-between text-xs text-surface-400">
-                    <span>Solved: <span className="text-surface-200 font-semibold">{s.solved}/{s.total}</span></span>
+                    <span>
+                      Solved: <span className={`font-semibold ${s.solved === s.total ? 'text-green-400' : s.solved === 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+                        {s.solved}/{s.total}
+                      </span>
+                    </span>
                     <span>Nodes: <span className="text-surface-200 font-semibold">{s.totalNodes.toLocaleString()}</span></span>
                   </div>
+                  {s.failed > 0 && (
+                    <div className="text-[10px] text-red-400/70">
+                      Failed {s.failed} of {s.total} board sizes
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -217,7 +268,7 @@ export default function Dashboard({ allResults }) {
               <h3 className="text-lg font-bold text-white">Performance Dashboard</h3>
               <p className="text-xs text-surface-400 mt-0.5">
                 {hasData
-                  ? `Comparative metrics across ${nValues.length} board sizes (N = ${nValues.join(', ')})`
+                  ? `Comparative metrics across ${nValues.length} board sizes (N = ${nValues.join(', ')}). Faded bars = solver failed.`
                   : 'Run solvers to populate the dashboard'}
               </p>
             </div>
@@ -231,6 +282,7 @@ export default function Dashboard({ allResults }) {
             </div>
             <p className="text-sm font-medium">No data yet</p>
             <p className="text-xs mt-1 text-surface-500">Run solvers across different N values to populate the dashboard.</p>
+            <p className="text-xs mt-2 text-surface-500">Use the "Run All (N=1 to 12)" button above for comprehensive data.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -244,7 +296,7 @@ export default function Dashboard({ allResults }) {
               <Bar data={makeChartData('memory_kb')} options={chartOptions('Memory Usage', 'Memory (KB)')} />
             </div>
             <div className="bg-surface-800/30 rounded-xl p-5 border border-surface-700/20" style={{ height: '320px' }}>
-              <Bar data={makeChartData('steps')} options={chartOptions('Steps (Queen Placements)', 'Steps')} />
+              <Bar data={makeChartData('steps')} options={chartOptions('Steps Performed', 'Steps')} />
             </div>
           </div>
         )}
@@ -259,7 +311,7 @@ export default function Dashboard({ allResults }) {
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Results Table</h3>
-              <p className="text-xs text-surface-400 mt-0.5">Detailed comparison by board size</p>
+              <p className="text-xs text-surface-400 mt-0.5">Detailed comparison by board size — red = solver failed</p>
             </div>
           </div>
           <table className="w-full text-xs">
@@ -284,7 +336,7 @@ export default function Dashboard({ allResults }) {
                       <td key={a} className={`py-2.5 px-3 text-right font-mono ${run.solved ? 'text-surface-200' : 'text-red-400/70'}`}>
                         {run.solved
                           ? `${run.time_ms?.toFixed(2)}ms / ${run.nodes?.toLocaleString()} nodes`
-                          : 'halted'}
+                          : `Failed (${run.time_ms?.toFixed(0)}ms / ${run.nodes?.toLocaleString()} nodes)`}
                       </td>
                     );
                   })}
