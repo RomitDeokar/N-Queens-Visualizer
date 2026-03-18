@@ -1,113 +1,12 @@
 [
   {
-    "algorithm": "astar",
-    "n": 7,
-    "nodes": 8,
-    "time_ms": 0.25,
-    "memory_kb": 0.44,
-    "steps": 49,
-    "solved": true,
-    "timestamp": 1773819996
-  },
-  {
     "algorithm": "dfs",
-    "n": 7,
-    "nodes": 52914,
-    "time_ms": 121.69,
-    "memory_kb": 2.21,
-    "steps": 105848,
+    "n": 6,
+    "nodes": 15316,
+    "time_ms": 51.84,
+    "memory_kb": 1.79,
+    "steps": 30646,
     "solved": true,
-    "timestamp": 1773819996
-  },
-  {
-    "algorithm": "best_first",
-    "n": 8,
-    "nodes": 90,
-    "time_ms": 1.23,
-    "memory_kb": 0.38,
-    "steps": 712,
-    "solved": true,
-    "timestamp": 1773820002
-  },
-  {
-    "algorithm": "bfs",
-    "n": 8,
-    "nodes": 13317,
-    "time_ms": 88.77,
-    "memory_kb": 321.35,
-    "steps": 27071,
-    "solved": true,
-    "timestamp": 1773820002
-  },
-  {
-    "algorithm": "dfs",
-    "n": 8,
-    "nodes": 80001,
-    "time_ms": 232.43,
-    "memory_kb": 4.09,
-    "steps": 160041,
-    "solved": false,
-    "timestamp": 1773820002,
-    "error": "DFS halted \u2014 node limit (80,000) exceeded. Blind search explored 80,001 states without finding a solution."
-  },
-  {
-    "algorithm": "bfs",
-    "n": 4,
-    "nodes": 52,
-    "time_ms": 0.12,
-    "memory_kb": 0.74,
-    "steps": 96,
-    "solved": true,
-    "timestamp": 1773820014
-  },
-  {
-    "algorithm": "dfs",
-    "n": 4,
-    "nodes": 155,
-    "time_ms": 0.37,
-    "memory_kb": 0.15,
-    "steps": 315,
-    "solved": true,
-    "timestamp": 1773820014
-  },
-  {
-    "algorithm": "best_first",
-    "n": 4,
-    "nodes": 9,
-    "time_ms": 0.1,
-    "memory_kb": 0.19,
-    "steps": 32,
-    "solved": true,
-    "timestamp": 1773820014
-  },
-  {
-    "algorithm": "astar",
-    "n": 4,
-    "nodes": 9,
-    "time_ms": 0.16,
-    "memory_kb": 0.25,
-    "steps": 32,
-    "solved": true,
-    "timestamp": 1773820014
-  },
-  {
-    "algorithm": "bfs",
-    "n": 5,
-    "nodes": 165,
-    "time_ms": 0.38,
-    "memory_kb": 0.74,
-    "steps": 340,
-    "solved": true,
-    "timestamp": 1773820021
-  },
-  {
-    "algorithm": "best_first",
-    "n": 5,
-    "nodes": 6,
-    "time_ms": 0.09,
-    "memory_kb": 0.23,
-    "steps": 25,
-    "solved": true,
-    "timestamp": 1773820021
+    "timestamp": 1773841416
   }
 ]
