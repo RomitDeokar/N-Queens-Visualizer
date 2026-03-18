@@ -24,10 +24,25 @@ export default function App() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [activeTab, setActiveTab] = useState('visualizer');
 
+  // Theme state
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('nqueens-theme') || 'dark';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('nqueens-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
   // Animation state
   const [animQueens, setAnimQueens] = useState([]);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animSpeed, setAnimSpeed] = useState(200);
+  const [animSpeed, setAnimSpeed] = useState(400);
   const [isPaused, setIsPaused] = useState(false);
   const animRef = useRef(null);
   const pausedRef = useRef(false);
@@ -136,7 +151,7 @@ export default function App() {
     }
   };
 
-  // FIX: Animation function - capture step value properly to avoid closure issues
+  // Animation function
   const animateQueens = (solution) => {
     if (!solution || solution.length === 0) return;
     
@@ -153,16 +168,12 @@ export default function App() {
         return;
       }
       if (step < solution.length) {
-        // FIX: Capture the current step value in a local variable
-        // to avoid closure issues with React's async state updates
         const currentStep = step;
         const queensSoFar = solution.slice(0, currentStep + 1);
         setAnimQueens(queensSoFar);
         step++;
         
         if (step >= solution.length) {
-          // Last queen placed - mark animation complete after a brief delay
-          // so the last queen is visible before we stop animating
           animRef.current = setTimeout(() => {
             setCompletedSolution([...solution]);
             setIsAnimating(false);
@@ -183,7 +194,6 @@ export default function App() {
     setCheckingCell(null);
     setCompletedSolution([]);
     const r = results?.[algo];
-    // Only animate if the algorithm actually solved the problem
     if (r?.solved && r?.state && r.state.length === n) {
       animateQueens(r.state);
     } else {
@@ -277,25 +287,20 @@ export default function App() {
     backtrackPausedRef.current = false;
   };
 
-  // FIX: Display queens - determine what to show with proper fallback chain
+  // Display queens
   const displayQueens = (() => {
-    // During active animations, show the animated queens
     if (isBacktracking || isAnimating) {
       return animQueens;
     }
-    // If we have animated queens that were set (animation just ended), show them
     if (animQueens.length > 0) {
       return animQueens;
     }
-    // If we have a completed solution stored, use that
     if (completedSolution.length > 0) {
       return completedSolution;
     }
-    // If browsing solutions, show the current solution
     if (showSolutionBrowser && solutionsData?.all_solutions?.length > 0) {
       return solutionsData.all_solutions[currentSolutionIdx] || [];
     }
-    // Fall back to the active algorithm's result
     return results?.[activeAlgo]?.state || [];
   })();
 
@@ -323,12 +328,18 @@ export default function App() {
     { id: 'agent', label: 'Agent', icon: '🤖' },
   ];
 
-  // Toggle pause for queen placement animation
   const toggleAnimPause = () => {
     const newVal = !isPaused;
     setIsPaused(newVal);
     pausedRef.current = newVal;
   };
+
+  // Speed slider: min=15ms max=2500ms 
+  // The slider value is inverted so dragging right = faster
+  const SPEED_MIN = 15;
+  const SPEED_MAX = 2500;
+  const sliderToSpeed = (val) => SPEED_MIN + SPEED_MAX - val;
+  const speedToSlider = (speed) => SPEED_MIN + SPEED_MAX - speed;
 
   return (
     <div className="app-root">
@@ -355,6 +366,11 @@ export default function App() {
             </div>
 
             <div className="header-controls">
+              {/* Theme Toggle */}
+              <button onClick={toggleTheme} className="theme-toggle" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+
               {/* N Selector */}
               <div className="n-selector">
                 <span className="n-label">N =</span>
@@ -466,15 +482,15 @@ export default function App() {
                       <span>Heatmap</span>
                     </label>
 
-                    {/* Speed Control */}
+                    {/* Speed Control - wider range: 15ms to 2500ms */}
                     <div className="speed-control">
                       <span className="speed-label">🐢</span>
                       <input
                         type="range"
-                        min="15"
-                        max="500"
-                        value={515 - animSpeed}
-                        onChange={(e) => setAnimSpeed(515 - parseInt(e.target.value))}
+                        min={SPEED_MIN}
+                        max={SPEED_MAX}
+                        value={speedToSlider(animSpeed)}
+                        onChange={(e) => setAnimSpeed(sliderToSpeed(parseInt(e.target.value)))}
                         className="speed-slider"
                       />
                       <span className="speed-label">🐇</span>
@@ -541,8 +557,8 @@ export default function App() {
                         )}
                         {!isAnimating && !isBacktracking && results?.[activeAlgo] && !results[activeAlgo].solved && (
                           <div className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 8, padding: '0.25rem 0.5rem' }}>
-                            <div className="status-dot" style={{ background: '#f87171' }} />
-                            <span style={{ color: '#fca5a5', fontSize: '0.7rem' }}>Failed — select a solved algorithm</span>
+                            <div className="status-dot" style={{ background: '#ef4444' }} />
+                            <span style={{ color: '#ef4444', fontSize: '0.7rem' }}>Failed — select a solved algorithm</span>
                           </div>
                         )}
                       </div>
@@ -553,13 +569,14 @@ export default function App() {
                       showConstraints={showConstraints}
                       showHeatmap={showHeatmap}
                       checkingCell={checkingCell}
+                      theme={theme}
                     />
                   </div>
                 </div>
 
                 {/* Right - Side panels */}
                 <div className="side-panels">
-                  {/* Log Panel - always visible during backtracking */}
+                  {/* Log Panel */}
                   <LogPanel
                     trace={traceData}
                     currentStep={backtrackStep}
@@ -683,6 +700,7 @@ export default function App() {
                             queens={solutionsData.all_solutions[currentSolutionIdx]}
                             showConstraints={true}
                             showHeatmap={false}
+                            theme={theme}
                           />
                         </div>
                         <div className="solution-state">
@@ -757,7 +775,7 @@ export default function App() {
                   )}
                 </button>
               </div>
-              <Dashboard allResults={allRuns} />
+              <Dashboard allResults={allRuns} theme={theme} />
             </motion.div>
           )}
 
@@ -812,15 +830,15 @@ export default function App() {
                   </h3>
                   <div className="rationality-text">
                     <p>
-                      The agent is <span className="text-brand-300 font-semibold">rational</span> because
+                      The agent is <strong style={{color: '#4c6ef5'}}>rational</strong> because
                       it selects the algorithm that maximizes the performance measure (minimising solve time
                       and nodes expanded) given its knowledge of how each algorithm scales.
                     </p>
                     <p>
-                      BFS is <span className="text-blue-400 font-medium">complete</span> but grows exponentially
+                      BFS is <strong style={{color: '#3b82f6'}}>complete</strong> but grows exponentially
                       - suitable only for small N. A* uses an admissible heuristic to
-                      find <span className="text-purple-400 font-medium">optimal paths efficiently</span>.
-                      Best First Search trades optimality for <span className="text-amber-400 font-medium">speed</span> at
+                      find <strong style={{color: '#7c3aed'}}>optimal paths efficiently</strong>.
+                      Best First Search trades optimality for <strong style={{color: '#d97706'}}>speed</strong> at
                       large scales.
                     </p>
                     <div className="rationality-note">
