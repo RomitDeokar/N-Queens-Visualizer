@@ -3,11 +3,13 @@ import React, { useMemo } from 'react';
 /**
  * Board.jsx - NxN chessboard with queens.
  * 
- * FIXED: Queens now render correctly on ALL rows including the last row.
- * Uses CSS Grid with explicit sizing and NO overflow:hidden anywhere.
- * Queen SVG is rendered with proper containment inside each cell.
+ * Supports light theme (warm beige/brown wooden chessboard) and dark theme.
+ * Queen SVG is the classic chess piece style (Colin Burnett inspired).
+ * Uses CSS Grid with explicit sizing.
  */
-export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false, checkingCell = null, compact = false }) {
+export default function Board({ n, queens = [], showConstraints = true, showHeatmap = false, checkingCell = null, compact = false, theme = 'dark' }) {
+  const isLight = theme === 'light';
+
   // Compute attack map for constraint visualization
   const { attackMap, maxAttacks } = useMemo(() => {
     const map = Array.from({ length: n }, () => Array(n).fill(0));
@@ -106,9 +108,14 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     if (isQueen) return {};
     const attacks = attackMap[row]?.[col] ?? 0;
     if (attacks <= 0) {
-      return { backgroundColor: 'rgba(16, 185, 129, 0.25)' };
+      return { backgroundColor: isLight ? 'rgba(34, 139, 34, 0.2)' : 'rgba(16, 185, 129, 0.25)' };
     }
     const intensity = maxAttacks > 0 ? attacks / maxAttacks : 0;
+    if (isLight) {
+      return {
+        backgroundColor: `rgba(${Math.round(200 * intensity + 34 * (1 - intensity))}, ${Math.round(60 * intensity + 139 * (1 - intensity))}, ${Math.round(60 * intensity + 34 * (1 - intensity))}, ${0.2 + intensity * 0.4})`,
+      };
+    }
     return {
       backgroundColor: `rgba(${Math.round(239 * intensity + 16 * (1 - intensity))}, ${Math.round(68 * intensity + 185 * (1 - intensity))}, ${Math.round(68 * intensity + 129 * (1 - intensity))}, ${0.25 + intensity * 0.45})`,
     };
@@ -116,6 +123,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
 
   const labelSize = compact ? 9 : (n <= 8 ? 13 : n <= 12 ? 11 : 10);
   const boardTotalWidth = n * cellPx + (n - 1) * gap;
+  const labelColor = isLight ? '#8a7e6f' : 'rgba(148, 163, 184, 0.7)';
 
   // Generate all cells in a flat array for the grid
   const cells = [];
@@ -152,7 +160,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
             >
               <svg viewBox="0 0 45 45" width={queenSizePx} height={queenSizePx}>
                 <g fill="none" fillRule="evenodd">
-                  <g fill="#fff" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <g fill={isLight ? '#1a1108' : '#fff'} stroke={isLight ? '#1a1108' : '#000'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
                     <path d="M24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
                     <path d="M41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0z" transform="translate(0 -1)"/>
@@ -180,6 +188,16 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
     }
   }
 
+  const boardBorderBg = isLight
+    ? 'linear-gradient(145deg, #d4c4a8, #e8dcc8)'
+    : 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7))';
+  const boardBorderColor = isLight
+    ? 'rgba(180, 170, 150, 0.5)'
+    : 'rgba(71, 85, 105, 0.4)';
+  const boardBoxShadow = isLight
+    ? '0 8px 32px rgba(120, 100, 70, 0.15), 0 0 0 1px rgba(180, 170, 150, 0.3)'
+    : '0 25px 60px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 80px rgba(76, 110, 245, 0.05)';
+
   return (
     <div className="board-wrapper">
       {/* Column labels */}
@@ -192,7 +210,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
                 width: cellPx,
                 fontSize: labelSize,
                 textAlign: 'center',
-                color: 'rgba(148, 163, 184, 0.7)',
+                color: labelColor,
                 fontFamily: 'monospace',
                 fontWeight: 600,
                 lineHeight: '22px',
@@ -218,7 +236,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: 24,
-                  color: 'rgba(148, 163, 184, 0.7)',
+                  color: labelColor,
                   fontFamily: 'monospace',
                   fontWeight: 600,
                 }}
@@ -229,7 +247,7 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
           </div>
         )}
 
-        {/* The actual board grid - FIX: explicit min-height to prevent last row clipping */}
+        {/* The actual board grid */}
         <div
           className="board-grid-container"
           style={{
@@ -239,9 +257,9 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
             gap: `${gap}px`,
             borderRadius: compact ? '8px' : '14px',
             padding: '4px',
-            background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7))',
-            border: '1px solid rgba(71, 85, 105, 0.4)',
-            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 80px rgba(76, 110, 245, 0.05)',
+            background: boardBorderBg,
+            border: `1px solid ${boardBorderColor}`,
+            boxShadow: boardBoxShadow,
             minHeight: n * cellPx + (n - 1) * gap + 8,
           }}
         >
@@ -253,15 +271,15 @@ export default function Board({ n, queens = [], showConstraints = true, showHeat
       {showConstraints && queens.length > 0 && !compact && (
         <div className="board-legend">
           <div className="board-legend-item">
-            <div className="board-legend-swatch" style={{ background: 'linear-gradient(135deg, #fbbf24, #d97706)' }} />
+            <div className="board-legend-swatch" style={{ background: isLight ? 'linear-gradient(135deg, #d4a34a, #a87c28)' : 'linear-gradient(135deg, #fbbf24, #d97706)' }} />
             <span>Queen</span>
           </div>
           <div className="board-legend-item">
-            <div className="board-legend-swatch" style={{ background: 'rgba(16, 185, 129, 0.4)', border: '1px solid rgba(16, 185, 129, 0.3)' }} />
+            <div className="board-legend-swatch" style={{ background: isLight ? 'rgba(50, 140, 80, 0.35)' : 'rgba(16, 185, 129, 0.4)', border: '1px solid rgba(16, 185, 129, 0.3)' }} />
             <span>Safe</span>
           </div>
           <div className="board-legend-item">
-            <div className="board-legend-swatch" style={{ background: 'rgba(239, 68, 68, 0.4)', border: '1px solid rgba(239, 68, 68, 0.3)' }} />
+            <div className="board-legend-swatch" style={{ background: isLight ? 'rgba(200, 60, 60, 0.35)' : 'rgba(239, 68, 68, 0.4)', border: '1px solid rgba(239, 68, 68, 0.3)' }} />
             <span>Attacked</span>
           </div>
         </div>
