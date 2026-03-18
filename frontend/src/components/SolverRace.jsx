@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 
 const SOLVER_COLORS = {
-  bfs: { bg: 'from-blue-500 to-blue-600', text: 'text-blue-400', barColor: '#3b82f6', barGrad: 'linear-gradient(90deg, #3b82f6, #60a5fa)', tag: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
-  dfs: { bg: 'from-emerald-500 to-emerald-600', text: 'text-emerald-400', barColor: '#10b981', barGrad: 'linear-gradient(90deg, #10b981, #34d399)', tag: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-  best_first: { bg: 'from-amber-500 to-orange-500', text: 'text-amber-400', barColor: '#f59e0b', barGrad: 'linear-gradient(90deg, #f59e0b, #fbbf24)', tag: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  astar: { bg: 'from-purple-500 to-violet-500', text: 'text-purple-400', barColor: '#8b5cf6', barGrad: 'linear-gradient(90deg, #8b5cf6, #a78bfa)', tag: 'bg-purple-500/15 text-purple-400 border-purple-500/20' },
+  bfs: { text: '#3b82f6', barColor: '#3b82f6', barGrad: 'linear-gradient(90deg, #3b82f6, #60a5fa)', tag: 'bg-blue' },
+  dfs: { text: '#10b981', barColor: '#10b981', barGrad: 'linear-gradient(90deg, #10b981, #34d399)', tag: 'bg-emerald' },
+  best_first: { text: '#f59e0b', barColor: '#f59e0b', barGrad: 'linear-gradient(90deg, #f59e0b, #fbbf24)', tag: 'bg-amber' },
+  astar: { text: '#8b5cf6', barColor: '#8b5cf6', barGrad: 'linear-gradient(90deg, #8b5cf6, #a78bfa)', tag: 'bg-purple' },
 };
 
 const SOLVER_LABELS = { bfs: 'BFS', dfs: 'DFS', best_first: 'Best-First', astar: 'A*' };
@@ -14,7 +14,6 @@ const SOLVER_TYPES = { bfs: 'Uninformed', dfs: 'Uninformed', best_first: 'Inform
 export default function SolverRace({ results, isRunning }) {
   const solverNames = ['bfs', 'dfs', 'best_first', 'astar'];
 
-  // Sort: solved first (by time), then failed (by time)
   const sorted = useMemo(() => {
     if (!results) return solverNames;
     return [...solverNames].sort((a, b) => {
@@ -26,7 +25,6 @@ export default function SolverRace({ results, isRunning }) {
     });
   }, [results]);
 
-  // Winner: fastest solver that actually solved
   const winner = useMemo(() => {
     if (!results) return null;
     const solved = solverNames.filter(s => results[s]?.solved);
@@ -38,7 +36,6 @@ export default function SolverRace({ results, isRunning }) {
     });
   }, [results]);
 
-  // Ranking map for solved solvers
   const ranking = useMemo(() => {
     if (!results) return {};
     const solved = solverNames
@@ -49,7 +46,6 @@ export default function SolverRace({ results, isRunning }) {
     return map;
   }, [results]);
 
-  // Max time for bar normalization (only solved solvers)
   const maxTime = useMemo(() => {
     if (!results) return 1;
     const times = solverNames
@@ -58,7 +54,6 @@ export default function SolverRace({ results, isRunning }) {
     return times.length > 0 ? Math.max(...times, 0.01) : 1;
   }, [results]);
 
-  // Count solved/failed
   const solvedCount = useMemo(() => {
     if (!results) return 0;
     return solverNames.filter(s => results[s]?.solved).length;
@@ -81,8 +76,8 @@ export default function SolverRace({ results, isRunning }) {
             fontSize: 14, boxShadow: '0 3px 8px rgba(16, 185, 129, 0.3)',
           }}>🏁</div>
           <div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white' }}>Solver Race</h3>
-            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>All four algorithms competing simultaneously</p>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)' }}>Solver Race</h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>All four algorithms competing simultaneously</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -92,8 +87,8 @@ export default function SolverRace({ results, isRunning }) {
               background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
               borderRadius: 10, padding: '0.375rem 0.75rem',
             }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', animation: 'pulse 1.5s ease-in-out infinite' }} />
-              <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 500 }}>Racing...</span>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>Racing...</span>
             </div>
           )}
           {results && !isRunning && (
@@ -101,14 +96,14 @@ export default function SolverRace({ results, isRunning }) {
               {solvedCount > 0 && (
                 <span style={{
                   fontSize: '0.65rem', padding: '0.25rem 0.5rem', borderRadius: 8,
-                  background: 'rgba(16, 185, 129, 0.1)', color: '#6ee7b7',
+                  background: 'rgba(16, 185, 129, 0.1)', color: '#059669',
                   border: '1px solid rgba(16, 185, 129, 0.2)', fontWeight: 600,
                 }}>{solvedCount} Solved</span>
               )}
               {failedCount > 0 && (
                 <span style={{
                   fontSize: '0.65rem', padding: '0.25rem 0.5rem', borderRadius: 8,
-                  background: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5',
+                  background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626',
                   border: '1px solid rgba(239, 68, 68, 0.2)', fontWeight: 600,
                 }}>{failedCount} Failed</span>
               )}
@@ -121,12 +116,12 @@ export default function SolverRace({ results, isRunning }) {
       {results && (
         <div style={{
           marginBottom: '1.25rem',
-          background: 'rgba(31, 41, 55, 0.3)',
+          background: 'var(--stat-pill-bg)',
           borderRadius: 12,
           padding: '1rem',
-          border: '1px solid rgba(55, 65, 81, 0.2)',
+          border: '1px solid var(--stat-pill-border)',
         }}>
-          <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b', fontWeight: 700, marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.75rem' }}>
             Performance Comparison
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -135,18 +130,17 @@ export default function SolverRace({ results, isRunning }) {
               const color = SOLVER_COLORS[name];
               const isWin = winner === name;
               const isFailed = r && !r.solved;
-              // For bars: use time relative to max for all (solved and failed)
               const pct = r?.time_ms != null ? Math.max((r.time_ms / maxTime) * 100, 5) : 0;
 
               return (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ width: 85, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <span style={{ fontSize: '0.875rem' }}>{SOLVER_ICONS[name]}</span>
-                    <span className={color.text} style={{ fontSize: '0.75rem', fontWeight: 700 }}>{SOLVER_LABELS[name]}</span>
+                    <span style={{ color: color.text, fontSize: '0.75rem', fontWeight: 700 }}>{SOLVER_LABELS[name]}</span>
                   </div>
                   <div style={{
                     flex: 1, height: 28,
-                    background: 'rgba(55, 65, 81, 0.2)',
+                    background: 'var(--bg-surface)',
                     borderRadius: 20,
                     overflow: 'hidden',
                     position: 'relative',
@@ -193,8 +187,8 @@ export default function SolverRace({ results, isRunning }) {
                           fontSize: '0.6rem',
                           fontFamily: "'JetBrains Mono', monospace",
                           fontWeight: 700,
-                          color: '#f87171',
-                          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                          color: '#dc2626',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.1)',
                           display: 'flex', alignItems: 'center', gap: 4,
                         }}>
                           FAILED {r.time_ms != null ? `(${r.time_ms.toFixed(0)}ms)` : ''}
@@ -202,7 +196,7 @@ export default function SolverRace({ results, isRunning }) {
                       </div>
                     ) : (
                       <div style={{ height: '100%', display: 'flex', alignItems: 'center', paddingLeft: 12 }}>
-                        <span style={{ fontSize: '0.65rem', color: '#64748b' }}>—</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>—</span>
                       </div>
                     )}
                   </div>
@@ -233,48 +227,51 @@ export default function SolverRace({ results, isRunning }) {
                 padding: '1rem',
                 transition: 'all 0.3s',
                 background: isWinner
-                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(20, 184, 166, 0.04))'
+                  ? 'rgba(16, 185, 129, 0.06)'
                   : isFailed
-                  ? 'linear-gradient(135deg, rgba(220, 38, 38, 0.06), rgba(220, 38, 38, 0.02))'
-                  : 'rgba(31, 41, 55, 0.4)',
+                  ? 'rgba(220, 38, 38, 0.04)'
+                  : 'var(--stat-pill-bg)',
                 border: isWinner
                   ? '2px solid rgba(16, 185, 129, 0.3)'
                   : isFailed
                   ? '1px solid rgba(220, 38, 38, 0.25)'
-                  : '1px solid rgba(55, 65, 81, 0.3)',
+                  : '1px solid var(--stat-pill-border)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1.125rem' }}>{SOLVER_ICONS[name]}</span>
-                  <span className={color.text} style={{ fontWeight: 700, fontSize: '0.875rem' }}>{SOLVER_LABELS[name]}</span>
-                  <span className={color.tag} style={{
+                  <span style={{ color: color.text, fontWeight: 700, fontSize: '0.875rem' }}>{SOLVER_LABELS[name]}</span>
+                  <span style={{
                     fontSize: '0.6rem',
                     padding: '0.125rem 0.5rem',
                     borderRadius: 20,
                     border: '1px solid',
                     fontWeight: 600,
+                    background: SOLVER_TYPES[name] === 'Informed' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                    color: SOLVER_TYPES[name] === 'Informed' ? '#7c3aed' : '#3b82f6',
+                    borderColor: SOLVER_TYPES[name] === 'Informed' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(59, 130, 246, 0.2)',
                   }}>{SOLVER_TYPES[name]}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {isWinner && (
                     <span style={{
                       fontSize: '0.6rem', padding: '0.125rem 0.5rem', borderRadius: 20,
-                      background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7',
+                      background: 'rgba(16, 185, 129, 0.15)', color: '#059669',
                       border: '1px solid rgba(16, 185, 129, 0.2)', fontWeight: 700,
                     }}>🏆 WINNER</span>
                   )}
                   {rank && rank > 1 && !isFailed && (
                     <span style={{
                       fontSize: '0.6rem', padding: '0.125rem 0.5rem', borderRadius: 20,
-                      background: 'rgba(55, 65, 81, 0.4)', color: '#cbd5e1',
-                      border: '1px solid rgba(55, 65, 81, 0.3)', fontWeight: 700,
+                      background: 'var(--stat-pill-bg)', color: 'var(--text-secondary)',
+                      border: '1px solid var(--stat-pill-border)', fontWeight: 700,
                     }}>#{rank}</span>
                   )}
                   {isFailed && (
                     <span style={{
                       fontSize: '0.6rem', padding: '0.125rem 0.5rem', borderRadius: 20,
-                      background: 'rgba(220, 38, 38, 0.15)', color: '#fca5a5',
+                      background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626',
                       border: '1px solid rgba(220, 38, 38, 0.2)', fontWeight: 700,
                     }}>FAILED</span>
                   )}
@@ -283,7 +280,7 @@ export default function SolverRace({ results, isRunning }) {
 
               {/* Progress bar */}
               <div style={{
-                height: 6, background: 'rgba(55, 65, 81, 0.3)',
+                height: 6, background: 'var(--bg-surface)',
                 borderRadius: 3, overflow: 'hidden', marginBottom: '0.75rem',
               }}>
                 <div
@@ -304,13 +301,13 @@ export default function SolverRace({ results, isRunning }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <div className="stat-pill">
                     <span className="stat-label">Time</span>
-                    <span className="stat-value" style={isFailed ? { color: '#f87171' } : {}}>
+                    <span className="stat-value" style={isFailed ? { color: '#dc2626' } : {}}>
                       {r.time_ms != null ? r.time_ms.toFixed(2) : '—'} ms
                     </span>
                   </div>
                   <div className="stat-pill">
                     <span className="stat-label">Nodes</span>
-                    <span className="stat-value" style={isFailed ? { color: '#f87171' } : {}}>
+                    <span className="stat-value" style={isFailed ? { color: '#dc2626' } : {}}>
                       {r.nodes?.toLocaleString() ?? '—'}
                     </span>
                   </div>
@@ -327,7 +324,7 @@ export default function SolverRace({ results, isRunning }) {
 
               {!r && !isRunning && (
                 <div style={{ textAlign: 'center', padding: '0.75rem 0' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Click Solve to start</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click Solve to start</span>
                 </div>
               )}
 
@@ -335,7 +332,7 @@ export default function SolverRace({ results, isRunning }) {
                 <div style={{
                   marginTop: '0.5rem',
                   fontSize: '0.7rem',
-                  color: 'rgba(248, 113, 113, 0.8)',
+                  color: '#dc2626',
                   fontFamily: "'JetBrains Mono', monospace",
                   background: 'rgba(220, 38, 38, 0.05)',
                   borderRadius: 10,
@@ -356,19 +353,19 @@ export default function SolverRace({ results, isRunning }) {
           marginTop: '1.25rem',
           padding: '1rem',
           borderRadius: 14,
-          background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(31, 41, 55, 0.3))',
+          background: 'rgba(16, 185, 129, 0.06)',
           border: '1px solid rgba(16, 185, 129, 0.15)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.125rem' }}>🏆</span>
-              <span style={{ fontSize: '0.875rem', color: '#e2e8f0' }}>
-                <span className={SOLVER_COLORS[winner].text} style={{ fontWeight: 700 }}>{SOLVER_LABELS[winner]}</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                <span style={{ color: SOLVER_COLORS[winner].text, fontWeight: 700 }}>{SOLVER_LABELS[winner]}</span>
                 {' '}wins with{' '}
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#6ee7b7' }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#059669' }}>
                   {results[winner]?.time_ms?.toFixed(2)} ms
                 </span>
-                {' '}<span style={{ color: '#64748b' }}>({SOLVER_TYPES[winner]} search)</span>
+                {' '}<span style={{ color: 'var(--text-muted)' }}>({SOLVER_TYPES[winner]} search)</span>
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -377,21 +374,21 @@ export default function SolverRace({ results, isRunning }) {
                 const isFailed = r && !r.solved;
                 return (
                   <span key={s} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
-                    <span className={SOLVER_COLORS[s].text}>{SOLVER_LABELS[s]}</span>
+                    <span style={{ color: SOLVER_COLORS[s].text }}>{SOLVER_LABELS[s]}</span>
                     {': '}
                     {isFailed ? (
-                      <span style={{ color: '#f87171' }}>Failed</span>
+                      <span style={{ color: '#dc2626' }}>Failed</span>
                     ) : r?.solved ? (
                       <>
-                        <span style={{ color: '#cbd5e1' }}>{r.time_ms?.toFixed(2)}ms</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{r.time_ms?.toFixed(2)}ms</span>
                         {results[winner]?.time_ms > 0 && (
-                          <span style={{ color: '#64748b', marginLeft: 4 }}>
+                          <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>
                             ({(r.time_ms / results[winner]?.time_ms).toFixed(1)}x)
                           </span>
                         )}
                       </>
                     ) : (
-                      <span style={{ color: '#64748b' }}>—</span>
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
                   </span>
                 );
@@ -412,15 +409,15 @@ export default function SolverRace({ results, isRunning }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', marginTop: 1 }}>💡</span>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.5 }}>
-              <strong style={{ color: '#e2e8f0' }}>Why did {failedCount === 1 ? 'one solver' : `${failedCount} solvers`} fail?</strong>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Why did {failedCount === 1 ? 'one solver' : `${failedCount} solvers`} fail?</strong>
               {' '}
               {solverNames.filter(s => results[s] && !results[s].solved).map(s => SOLVER_LABELS[s]).join(' and ')}
-              {' '}{failedCount === 1 ? 'is an' : 'are'} <strong style={{ color: '#60a5fa' }}>uninformed</strong> search
+              {' '}{failedCount === 1 ? 'is an' : 'are'} <strong style={{ color: '#3b82f6' }}>uninformed</strong> search
               {failedCount === 1 ? '' : 'es'} — {failedCount === 1 ? 'it explores' : 'they explore'} blindly without domain knowledge.
               {' '}Informed algorithms like{' '}
-              <strong style={{ color: '#a78bfa' }}>A*</strong> and{' '}
-              <strong style={{ color: '#fbbf24' }}>Best-First</strong> use heuristics to prune
+              <strong style={{ color: '#7c3aed' }}>A*</strong> and{' '}
+              <strong style={{ color: '#d97706' }}>Best-First</strong> use heuristics to prune
               invalid states early and focus on promising branches, solving the problem with far fewer nodes.
             </div>
           </div>
