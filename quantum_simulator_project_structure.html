@@ -1,0 +1,147 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .root { padding: 1.5rem 0; }
+  .hero { text-align: center; margin-bottom: 2rem; }
+  .hero h1 { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .hero p { font-size: 14px; color: var(--color-text-secondary); }
+  .tag { display: inline-block; background: var(--color-background-info); color: var(--color-text-info); font-size: 11px; padding: 2px 10px; border-radius: 20px; margin: 4px 2px; }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.5rem 0 0.75rem; }
+  .modules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .module { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; cursor: pointer; transition: border-color 0.15s; }
+  .module:hover { border-color: var(--color-border-primary); }
+  .module-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; font-size: 16px; }
+  .module-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; }
+  .module-desc { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; }
+  .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stack-card { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px; }
+  .stack-card h4 { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .stack-card .item { font-size: 12px; color: var(--color-text-primary); padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-purple { background: #7F77DD; }
+  .dot-teal { background: #1D9E75; }
+  .dot-amber { background: #BA7517; }
+  .dot-coral { background: #D85A30; }
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .tl-item { display: flex; align-items: flex-start; gap: 12px; }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; background: #7F77DD; flex-shrink: 0; margin-top: 5px; }
+  .tl-content { font-size: 12px; color: var(--color-text-primary); line-height: 1.5; }
+  .tl-date { font-size: 11px; color: var(--color-text-tertiary); }
+  .wow { background: var(--color-background-secondary); border-left: 2px solid #7F77DD; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 12px 14px; margin-top: 1rem; }
+  .wow p { font-size: 13px; color: var(--color-text-primary); line-height: 1.6; }
+  .score { display: flex; align-items: center; gap: 10px; margin-top: 1rem; }
+  .score-bar { flex: 1; height: 6px; background: var(--color-border-tertiary); border-radius: 3px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 3px; }
+  .score-label { font-size: 12px; color: var(--color-text-secondary); min-width: 90px; }
+  .score-val { font-size: 12px; font-weight: 500; color: var(--color-text-primary); min-width: 30px; text-align: right; }
+</style>
+<div class="root">
+  <div class="hero">
+    <h1>QuantumViz — Interactive Qubit Simulator</h1>
+    <p>Problem 16 · Visual Simulation Hackathon · QtHack04</p>
+    <div style="margin-top: 10px;">
+      <span class="tag">Three.js 3D</span>
+      <span class="tag">Bloch Sphere</span>
+      <span class="tag">Quantum Gates</span>
+      <span class="tag">Qiskit-inspired</span>
+      <span class="tag">React + Vite</span>
+    </div>
+  </div>
+
+  <div class="section-label">Core Modules to Build</div>
+  <div class="modules">
+    <div class="module" onclick="sendPrompt('Build me the Bloch sphere 3D module with Three.js for the quantum simulator')">
+      <div class="module-icon" style="background: #EEEDFE;">🌐</div>
+      <div class="module-title">Bloch Sphere (3D)</div>
+      <div class="module-desc">Three.js rotating sphere, qubit state vector, real-time update on gate application</div>
+    </div>
+    <div class="module" onclick="sendPrompt('Build me the quantum gate panel UI for the simulator')">
+      <div class="module-icon" style="background: #E1F5EE;">⚡</div>
+      <div class="module-title">Gate Control Panel</div>
+      <div class="module-desc">Drag-and-drop Pauli X/Y/Z, Hadamard, Phase, CNOT gates onto circuit</div>
+    </div>
+    <div class="module" onclick="sendPrompt('Build me the probability measurement visualization bar chart for the quantum simulator')">
+      <div class="module-icon" style="background: #FAEEDA;">📊</div>
+      <div class="module-title">Measurement Panel</div>
+      <div class="module-desc">|0⟩ and |1⟩ probability bars, animated collapse on measurement</div>
+    </div>
+    <div class="module" onclick="sendPrompt('Build me the qubit state equation display showing alpha and beta coefficients')">
+      <div class="module-icon" style="background: #FAECE7;">🧮</div>
+      <div class="module-title">State Equation Display</div>
+      <div class="module-desc">Live |ψ⟩ = α|0⟩ + β|1⟩ with real-time α, β values and phase</div>
+    </div>
+    <div class="module" onclick="sendPrompt('Build me the circuit timeline visualization for quantum gates')">
+      <div class="module-icon" style="background: #FBEAF0;">🔗</div>
+      <div class="module-title">Circuit Timeline</div>
+      <div class="module-desc">Visual qubit wire with applied gates in sequence, step-through mode</div>
+    </div>
+    <div class="module" onclick="sendPrompt('Build me the quantum entanglement visualizer for 2 qubits')">
+      <div class="module-icon" style="background: #EAF3DE;">🔮</div>
+      <div class="module-title">2-Qubit Entanglement</div>
+      <div class="module-desc">Bell state demo, correlated Bloch spheres, CNOT visualization</div>
+    </div>
+  </div>
+
+  <div class="section-label">Tech Stack</div>
+  <div class="stack">
+    <div class="stack-card">
+      <h4>Frontend</h4>
+      <div class="item"><div class="dot dot-purple"></div>React + Vite</div>
+      <div class="item"><div class="dot dot-purple"></div>Three.js (3D sphere)</div>
+      <div class="item"><div class="dot dot-purple"></div>Tailwind CSS</div>
+      <div class="item"><div class="dot dot-purple"></div>Framer Motion</div>
+    </div>
+    <div class="stack-card">
+      <h4>Physics Engine</h4>
+      <div class="item"><div class="dot dot-teal"></div>math.js (matrix ops)</div>
+      <div class="item"><div class="dot dot-teal"></div>Custom gate matrices</div>
+      <div class="item"><div class="dot dot-teal"></div>Bloch vector math</div>
+      <div class="item"><div class="dot dot-teal"></div>Wavefunction collapse</div>
+    </div>
+    <div class="stack-card">
+      <h4>Visualization</h4>
+      <div class="item"><div class="dot dot-amber"></div>Chart.js (prob. bars)</div>
+      <div class="item"><div class="dot dot-amber"></div>D3.js (circuit wire)</div>
+      <div class="item"><div class="dot dot-amber"></div>KaTeX (equations)</div>
+    </div>
+    <div class="stack-card">
+      <h4>For Demo Video</h4>
+      <div class="item"><div class="dot dot-coral"></div>OBS / Loom screen record</div>
+      <div class="item"><div class="dot dot-coral"></div>Narrate each gate step</div>
+      <div class="item"><div class="dot dot-coral"></div>Show equation changes</div>
+    </div>
+  </div>
+
+  <div class="section-label">What Makes Judges Say "Wow"</div>
+  <div class="wow">
+    <p>1. <strong>Click H gate → Bloch sphere visibly rotates</strong> to equator in 3D. Real-time α/β update. Most teams just show a static image.</p>
+    <p style="margin-top: 8px;">2. <strong>Hit "Measure" → sphere collapses</strong> to |0⟩ or |1⟩ with animation + correct probability shown beforehand. Panel can explain why.</p>
+    <p style="margin-top: 8px;">3. <strong>Step-through mode</strong> — apply gates one-by-one and explain what each does to the state vector. No other team will do this.</p>
+    <p style="margin-top: 8px;">4. <strong>2-qubit Bell state demo</strong> — show entanglement visually with two linked spheres. Say "Einstein called this spooky action." Judges remember it.</p>
+  </div>
+
+  <div class="section-label">Hackathon Score Projection</div>
+  <div>
+    <div class="score">
+      <div class="score-label">Visualization</div>
+      <div class="score-bar"><div class="score-fill" style="width: 95%; background: #7F77DD;"></div></div>
+      <div class="score-val">9.5/10</div>
+    </div>
+    <div class="score">
+      <div class="score-label">Physics accuracy</div>
+      <div class="score-bar"><div class="score-fill" style="width: 85%; background: #1D9E75;"></div></div>
+      <div class="score-val">8.5/10</div>
+    </div>
+    <div class="score">
+      <div class="score-label">Interactivity</div>
+      <div class="score-bar"><div class="score-fill" style="width: 90%; background: #BA7517;"></div></div>
+      <div class="score-val">9/10</div>
+    </div>
+    <div class="score">
+      <div class="score-label">Presentation</div>
+      <div class="score-bar"><div class="score-fill" style="width: 88%; background: #D85A30;"></div></div>
+      <div class="score-val">8.8/10</div>
+    </div>
+  </div>
+</div>
