@@ -183,7 +183,8 @@ export default function App() {
     setCheckingCell(null);
     setCompletedSolution([]);
     const r = results?.[algo];
-    if (r?.state && r.state.length > 0) {
+    // Only animate if the algorithm actually solved the problem
+    if (r?.solved && r?.state && r.state.length === n) {
       animateQueens(r.state);
     } else {
       setAnimQueens([]);
@@ -536,6 +537,12 @@ export default function App() {
                           <div className="status-badge status-solved">
                             <div className="status-dot status-dot-green" />
                             <span>Solved!</span>
+                          </div>
+                        )}
+                        {!isAnimating && !isBacktracking && results?.[activeAlgo] && !results[activeAlgo].solved && (
+                          <div className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 8, padding: '0.25rem 0.5rem' }}>
+                            <div className="status-dot" style={{ background: '#f87171' }} />
+                            <span style={{ color: '#fca5a5', fontSize: '0.7rem' }}>Failed — select a solved algorithm</span>
                           </div>
                         )}
                       </div>
