@@ -3,7 +3,7 @@
 
 > An AI system that solves the N-Queens problem using four algorithms from the syllabus, compares their performance, and frames the entire solution as an Intelligent Agent 
 
-https://5173-i8a1w7kvg2t4c1ryn3gce-82b888ba.sandbox.novita.ai/
+https://5173-itcmncev38f058qxko46i-b9b802c4.sandbox.novita.ai/
 
 ---
 
