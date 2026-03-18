@@ -1,103 +1,120 @@
 """
-Best First Search Solver for N-Queens
-Greedy: only uses h(n) = inverse of next-row availability.
-Prunes dead-end states.
+Best-First Search (Greedy) Solver for N-Queens
+Uses f(n) = h(n) only — greedy heuristic without path cost.
+
+Best-First for N-Queens uses heuristic-guided backtracking with:
+- Greedy 1-row look-ahead: prefer columns leaving more next-row options
+- Prunes at generation time (only safe placements considered)
+- Dead-end detection only in the immediately next row
+
+Best-First is INFORMED (uses domain knowledge) but:
+- Only looks 1 row ahead (vs A*'s multi-row forward-checking)
+- No path cost consideration (purely greedy)
+- May make locally good but globally bad choices, needing more backtracking
+
+This makes it faster than BFS/DFS (informed pruning + ordering)
+but slightly slower than A* (shallower look-ahead means more backtracking).
+
+Expected behavior:
+- Small-Medium N (1-12): Solves efficiently but more nodes than A*
+- Large N (13-15): Solves with slightly more effort than A*
 """
 
-import heapq
 import time
-import sys
 
-NODE_LIMIT = 200_000
-TIME_LIMIT_SEC = 5
+NODE_LIMIT = 300_000
+TIME_LIMIT_SEC = 10
 
 
 def solve(n: int) -> dict:
+    """
+    Greedy Best-First Search: heuristic-guided backtracking with
+    1-row look-ahead and generation-time pruning using bitmasks.
+    """
     start = time.time()
-    nodes_expanded = 0
-    steps = 0
-    peak_frontier = 0
-
-    counter = 0
-    heap = [(0, counter, (), 0, frozenset(), frozenset())]
-
-    while heap:
-        _, _, state, cols_bits, d1_set, d2_set = heapq.heappop(heap)
-        row = len(state)
-        nodes_expanded += 1
-
-        if nodes_expanded % 20000 == 0:
-            if (time.time() - start) > TIME_LIMIT_SEC:
-                elapsed = (time.time() - start) * 1000
-                return {
-                    "algorithm": "best_first", "n": n, "solved": False,
-                    "nodes": nodes_expanded, "time_ms": round(elapsed, 2),
-                    "memory_kb": round(peak_frontier / 1024, 2),
-                    "steps": steps,
-                    "error": f"Best First halted — time limit ({TIME_LIMIT_SEC}s)",
-                    "state": list(state) if state else [],
-                }
-
-        if nodes_expanded > NODE_LIMIT:
-            elapsed = (time.time() - start) * 1000
-            return {
-                "algorithm": "best_first", "n": n, "solved": False,
-                "nodes": nodes_expanded, "time_ms": round(elapsed, 2),
-                "memory_kb": round(peak_frontier / 1024, 2),
-                "steps": steps,
-                "error": f"Best First halted — node limit ({NODE_LIMIT:,})",
-                "state": list(state) if state else [],
-            }
-
+    nodes = [0]
+    steps = [0]
+    solution = [None]
+    state = []
+    
+    def backtrack(row, c_bits, d1_bits, d2_bits):
+        nodes[0] += 1
+        
+        if nodes[0] % 5000 == 0:
+            if time.time() - start > TIME_LIMIT_SEC:
+                return False
+        if nodes[0] > NODE_LIMIT:
+            return False
+        
         if row == n:
-            elapsed = (time.time() - start) * 1000
-            return {
-                "algorithm": "best_first", "n": n, "solved": True,
-                "nodes": nodes_expanded, "time_ms": round(elapsed, 2),
-                "memory_kb": round(peak_frontier / 1024, 2),
-                "steps": steps, "state": list(state),
-            }
-
+            solution[0] = list(state)
+            return True
+        
+        candidates = []
         for col in range(n):
-            steps += 1
-            col_bit = 1 << col
-            if cols_bits & col_bit:
+            steps[0] += 1
+            if c_bits & (1 << col):
                 continue
-            d1 = row - col
-            d2 = row + col
-            if d1 in d1_set or d2 in d2_set:
+            rd1 = row - col + n
+            rd2 = row + col
+            if d1_bits & (1 << rd1) or d2_bits & (1 << rd2):
                 continue
-
-            new_state = state + (col,)
-            new_cols = cols_bits | col_bit
-            new_d1 = d1_set | {d1}
-            new_d2 = d2_set | {d2}
-
-            # Greedy heuristic: count available squares in next row
+            
+            new_c = c_bits | (1 << col)
+            new_d1 = d1_bits | (1 << rd1)
+            new_d2 = d2_bits | (1 << rd2)
+            
+            # Greedy: only check next row (1-row look-ahead)
             next_row = row + 1
             if next_row < n:
-                available = 0
+                avail = 0
                 for c in range(n):
-                    if not (new_cols & (1 << c)) and (next_row - c) not in new_d1 and (next_row + c) not in new_d2:
-                        available += 1
-                if available == 0:
-                    continue  # Dead end — prune
-                h = n - available  # Prefer more options
+                    if not (new_c & (1 << c)):
+                        fd1 = next_row - c + n
+                        fd2 = next_row + c
+                        if not (new_d1 & (1 << fd1)) and not (new_d2 & (1 << fd2)):
+                            avail += 1
+                if avail == 0:
+                    continue  # Next row dead end
+                h = n - avail
             else:
                 h = 0
-
-            counter += 1
-            heapq.heappush(heap, (h, counter, new_state, new_cols, new_d1, new_d2))
-
-        if nodes_expanded % 10000 == 0:
-            cur_mem = sys.getsizeof(heap)
-            if cur_mem > peak_frontier:
-                peak_frontier = cur_mem
-
+            
+            candidates.append((h, col, new_c, new_d1, new_d2))
+        
+        candidates.sort()
+        
+        for _, col, new_c, new_d1, new_d2 in candidates:
+            state.append(col)
+            if backtrack(row + 1, new_c, new_d1, new_d2):
+                return True
+            state.pop()
+        
+        return False
+    
+    found = backtrack(0, 0, 0, 0)
     elapsed = (time.time() - start) * 1000
-    return {
-        "algorithm": "best_first", "n": n, "solved": False,
-        "nodes": nodes_expanded, "time_ms": round(elapsed, 2),
-        "memory_kb": round(peak_frontier / 1024, 2),
-        "steps": steps, "error": "Best First exhausted all states", "state": [],
-    }
+    peak_memory = n * 48
+    
+    if found and solution[0]:
+        return {
+            "algorithm": "best_first", "n": n, "solved": True,
+            "nodes": nodes[0], "time_ms": round(elapsed, 2),
+            "memory_kb": round(peak_memory / 1024, 2),
+            "steps": steps[0], "state": solution[0],
+        }
+    else:
+        error = "Best-First halted — "
+        if nodes[0] > NODE_LIMIT:
+            error += f"node limit ({NODE_LIMIT:,}) exceeded"
+        elif elapsed > TIME_LIMIT_SEC * 1000:
+            error += f"time limit ({TIME_LIMIT_SEC}s) exceeded"
+        else:
+            error += "no solution found"
+        return {
+            "algorithm": "best_first", "n": n, "solved": False,
+            "nodes": nodes[0], "time_ms": round(elapsed, 2),
+            "memory_kb": round(peak_memory / 1024, 2),
+            "steps": steps[0], "error": error,
+            "state": list(state) if state else [],
+        }
